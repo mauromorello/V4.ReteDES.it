@@ -1,12 +1,12 @@
 .htaccess
+lib/swiftmailer/
+lib/sendgrid/
 ajax/
 data/
 fonts/
 img/
 js/
 lib/util.php
-lib/swiftmailer/
-lib/sendgrid/
 php/
 sound/
 xml/
