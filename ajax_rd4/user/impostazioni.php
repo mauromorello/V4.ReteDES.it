@@ -2,22 +2,7 @@
 require_once("inc/init.php");
 
 $ui = new SmartUI;
-
-
-
-$h=file_get_contents("../help/impostazioni.html");
-
-$options = array(   "editbutton" => false,
-                    "fullscreenbutton"=>false,
-                    "deletebutton"=>true,
-                    "colorbutton"=>false);
-$wg_help = $ui->create_widget($options);
-$wg_help->id = "wg_help_impostazioni";
-$wg_help->body = array("content" => $h,"class" => "");
-$wg_help->header = array(
-    "title" => '<h2>Aiuto</h2>',
-    "icon" => 'fa fa-question-circle'
-);
+$page_title = "Impostazioni sito";
 
 $options = array(   "editbutton" => false,
                     "fullscreenbutton"=>false,
@@ -256,7 +241,7 @@ $wg_permessi->header = array(
     <div class="row">
         <!-- PRIMA COLONNA-->
         <article class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
-            <?php echo $wg_help->print_html(); ?>
+            <?php echo help_render_html("user_impostazioni",$page_title); ?>
             <?php echo $wg_visual->print_html(); ?>
             <?php echo $wg_permessi->print_html(); ?>
         </article>
@@ -273,6 +258,10 @@ $wg_permessi->header = array(
 <script type="text/javascript">
 
     pageSetUp();
+
+    //-------------------------HELP
+    <?php echo help_render_js("user_impostazioni"); ?>
+    //-------------------------HELP
 
     // hide bg options
     var smartbgimage = "<h6 class='margin-top-10 semi-bold'>Background</h6><img src='img/pattern/graphy-xs.png' data-htmlbg-url='img/pattern/graphy.png' width='22' height='22' class='margin-right-5 bordered cursor-pointer'><img src='img/pattern/tileable_wood_texture-xs.png' width='22' height='22' data-htmlbg-url='img/pattern/tileable_wood_texture.png' class='margin-right-5 bordered cursor-pointer'><img src='img/pattern/sneaker_mesh_fabric-xs.png' width='22' height='22' data-htmlbg-url='img/pattern/sneaker_mesh_fabric.png' class='margin-right-5 bordered cursor-pointer'><img src='img/pattern/nistri-xs.png' data-htmlbg-url='img/pattern/nistri.png' width='22' height='22' class='margin-right-5 bordered cursor-pointer'><img src='img/pattern/paper-xs.png' data-htmlbg-url='img/pattern/paper.png' width='22' height='22' class='bordered cursor-pointer'>";

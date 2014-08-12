@@ -3,20 +3,7 @@ require_once("inc/init.php");
 $ui = new SmartUI;
 
 $page_title = "Mia Cassa";
-
-$h=file_get_contents("help/cassa.html");
-
-$options = array(   "editbutton" => false,
-                    "fullscreenbutton"=>false,
-                    "deletebutton"=>true,
-                    "colorbutton"=>false);
-$wg_help = $ui->create_widget($options);
-$wg_help->id = "wg_help_miacassa";
-$wg_help->body = array("content" => $h,"class" => "");
-$wg_help->header = array(
-    "title" => '<h2>Aiuto</h2>',
-    "icon" => 'fa fa-question-circle'
-);
+$help_id ="mia_cassa";
 
 
 //-------SALDO
@@ -237,7 +224,7 @@ $wg_mov->header = array(
     <div class="row">
         <!-- PRIMA COLONNA-->
         <article class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
-            <?php echo $wg_help->print_html(); ?>
+            <?php echo help_render_html($help_id); ?>
             <?php echo $wg_cassa->print_html(); ?>
         </article>
         <article class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
@@ -259,6 +246,10 @@ $wg_mov->header = array(
     pageSetUp();
 
     var pagefunction = function(){
+
+         //-----------HELP
+         <?php echo help_render_js($help_id); ?>
+         //-----------HELP
 
          $(document.body).on('click', '.elimina_mov', function(){
              var id_prenotazione = $(this).attr('rel');

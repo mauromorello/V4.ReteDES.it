@@ -405,10 +405,44 @@ $gas_menu =  array(
     );
 
 $help_menu =  array(
+
+
+
     "title" => "Aiuto!",
-    "url" => "ajax_rd4/help.php",
-    "icon" => "fa-question"
+    "icon" => "fa-question",
+    "sub" => array(
+                            "help_inizio" => array(
+                                'title' => 'un nuovo inizio',
+                                'icon' => 'fa-smile-o',
+                                "url" => "ajax_rd4/help/help_inizio.php"),
+
+
+                            "help_utente" => array(
+                                'title' => 'Utente',
+                                "url" => "ajax_rd4/help/help_utente.php"),
+
+                            "help_gas" => array(
+                                'title' => 'GAS',
+                                "url" => "ajax_rd4/help/help_gas.php"),
+
+                            "help_sviluppo" => array(
+                                "title" => "Sviluppatori",
+                                'url' => 'ajax_rd4/help/help_developer.php')
+                    )
 );
+
+$ordini_menu =  array(
+
+    "title" => "Ordini",
+    "icon" => "fa-cubes",
+    "sub" => array(
+                                "ordini_calendario" => array(
+                                'title' => 'calendario',
+                                'icon' => 'fa-calendar',
+                                "url" => "ajax_rd4/ordini/calendario.php")
+                    )
+);
+
 
 $page_nav =array(   "dashboard" => array(
                     "title" => "Cruscotto",
@@ -437,6 +471,7 @@ $page_nav =array(   "dashboard" => array(
                     )
                 ),
                 "gas_menu" => $gas_menu,
+                "ordini_menu" => $ordini_menu,
                 "help_menu" => $help_menu
             );
 

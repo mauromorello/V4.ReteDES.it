@@ -2,21 +2,7 @@
 require_once("inc/init.php");
 
 $ui = new SmartUI;
-
-$h=file_get_contents("../help/anagrafiche.html");
-
-$options = array(   "editbutton" => false,
-                    "fullscreenbutton"=>false,
-                    "deletebutton"=>true,
-                    "colorbutton"=>false);
-$wg_help = $ui->create_widget($options);
-$wg_help->id = "wg_help_anagrafiche";
-$wg_help->body = array("content" => $h,"class" => "");
-$wg_help->header = array(
-    "title" => '<h2>Aiuto</h2>',
-    "icon" => 'fa fa-question-circle'
-);
-
+$page_title="Anagrafica utente";
 
 //---------------------------------------------------ANAGRAFICA UTENTE
 
@@ -142,7 +128,7 @@ $wg_acc->header = array(
         <article class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
 
             <?php echo $wg_ana->print_html(); ?>
-            <?php echo $wg_help->print_html(); ?>
+            <?php echo help_render_html("user_anagrafica",$page_title); ?>
         </article>
 
     </div>
@@ -153,6 +139,8 @@ $wg_acc->header = array(
     pageSetUp();
 
     var pagefunction = function() {
+
+        <?php echo help_render_js("user_anagrafica"); ?>
 
         var $checkoutForm = $('#checkout-form').validate({
         // Rules for form validation

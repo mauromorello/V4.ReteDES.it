@@ -18,7 +18,7 @@ switch ($_POST["act"]) {
             $indice = $row[0] +1;
 
             $sHTML =$_POST["sHTML"];
-            $sHTML = strip_tags($sHTML,"<a><code><small><alt><b><strong><br><ul><li><ol><oi><hr><h1><h2><h3><h4><h5><h6><p><img><hr>");
+            $sHTML = strip_tags($sHTML,"<a><table><tr><td><code><small><alt><b><strong><br><ul><li><ol><oi><hr><h1><h2><h3><h4><h5><h6><p><img><hr>");
 
             $msg = '<code class="note pull-right">Revisione <b>'.$indice.'</b> di '._USER_FULLNAME.", "._USER_GAS_NOME.", il ".date('d/m/Y H:i').'</code>';
 

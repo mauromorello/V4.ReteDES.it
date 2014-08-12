@@ -273,9 +273,9 @@ $wg_ami->header = array(
             loadScript("js/plugin/datatables/dataTables.tableTools.min.js", function(){
                 loadScript("js/plugin/datatables/dataTables.bootstrap.min.js", function(){
                     loadScript("js/plugin/datatable-responsive/datatables.responsive.min.js", function(){
-                        loadScript("js/plugin/summernote/summernote.min.js", function(){
+
                             loadScript("js/plugin/x-editable/x-editable.min.js", pagefunction)
-                        });
+
                     });
                 });
             });
