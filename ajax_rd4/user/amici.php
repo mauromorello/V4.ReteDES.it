@@ -2,22 +2,11 @@
 require_once("inc/init.php");
 
 $ui = new SmartUI;
+$page_title = "Amici";
 
-$h=file_get_contents("../help/amici.html");
 
-$options = array(   "editbutton" => false,
-                    "fullscreenbutton"=>false,
-                    "deletebutton"=>true,
-                    "colorbutton"=>false);
-$wg_help = $ui->create_widget($options);
-$wg_help->id = "wg_help_amici";
-$wg_help->body = array("content" => $h,"class" => "");
-$wg_help->header = array(
-    "title" => '<h2>Aiuto</h2>',
-    "icon" => 'fa fa-question-circle',
-    "toolbar" => array( '<button class="btn btn-primary">
-                            <i class="fa fa-question" ></i> Help del sito</button>')
-);
+
+
 
 
 $stmt = $db->prepare("SELECT * FROM  retegas_amici WHERE id_referente = '"._USER_ID."' AND retegas_amici.is_visible = '1'");
@@ -87,7 +76,7 @@ $wg_ami->header = array(
     <div class="row">
         <!-- PRIMA COLONNA-->
         <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-            <?php echo $wg_help->print_html(); ?>
+            <?php echo help_render_html($page_title); ?>
             <?php echo $wg_ami->print_html(); ?>
         </article>
     </div>
@@ -98,6 +87,11 @@ $wg_ami->header = array(
     pageSetUp();
 
     var pagefunction = function(){
+
+        //------------HELP WIDGET
+        <?php echo help_render_js($page_title);?>
+        //------------END HELP WIDGET
+
         console.log("Start");
         var responsiveHelper_dt_basic = undefined;
             var responsiveHelper_datatable_fixed_column = undefined;
@@ -279,7 +273,9 @@ $wg_ami->header = array(
             loadScript("js/plugin/datatables/dataTables.tableTools.min.js", function(){
                 loadScript("js/plugin/datatables/dataTables.bootstrap.min.js", function(){
                     loadScript("js/plugin/datatable-responsive/datatables.responsive.min.js", function(){
-                        loadScript("js/plugin/x-editable/x-editable.min.js", pagefunction)
+                        loadScript("js/plugin/summernote/summernote.min.js", function(){
+                            loadScript("js/plugin/x-editable/x-editable.min.js", pagefunction)
+                        });
                     });
                 });
             });

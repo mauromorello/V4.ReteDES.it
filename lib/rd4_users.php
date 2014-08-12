@@ -96,6 +96,15 @@ function IsLoggedIn(){
            define("_USER_LAT",$row["user_gc_lat"]);
            define("_USER_LNG",$row["user_gc_lng"]);
 
+
+           //USER EDIT HELP
+           $stmt = $db->prepare("SELECT valore_text FROM retegas_options WHERE id_user="._USER_ID." AND chiave='_USER_PUO_MODIFICARE_HELP' LIMIT 1;");
+           $stmt->execute();
+           $row = $stmt->fetch(PDO::FETCH_ASSOC);
+           defined('_USER_PUO_MODIFICARE_HELP') or define("_USER_PUO_MODIFICARE_HELP",$row["valore_text"]=='SI' ? true : false);
+
+
+
            //USER CASSA
            $stmt = $db->prepare("SELECT * FROM retegas_options WHERE id_user="._USER_ID." AND chiave='_USER_USA_CASSA' LIMIT 1;");
            $stmt->execute();

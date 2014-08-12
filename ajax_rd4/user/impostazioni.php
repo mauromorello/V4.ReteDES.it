@@ -175,6 +175,11 @@ $user_permission = _USER_PERMISSIONS;
 //permessi
 function r($status,$title,$pop=null){return $status ? '<span rel="popover-hover" data-placement="top" data-original-title="'.$title.'" data-content="'.$pop.'"><i class="fa fa-check txt-color-green"></i> '.$title.' </span>' : '<span class="txt-color-blueLight"><i class="fa fa-times txt-color-red"></i> '.$title.' </span';}
 
+if(_USER_PUO_MODIFICARE_HELP){
+    $user_modifica_help = '<span><i class="fa fa-check txt-color-green"></i> Può modificare gli help </span>';
+}else{
+    $user_modifica_help = '<span><i class="fa fa-times txt-color-red"></i> Può modificare gli help </span>';
+}
 
 $p= '
 <dl class="dl-horizontal">
@@ -217,6 +222,9 @@ $p= '
     '.r($user_permission & perm::puo_gestire_la_cassa,"Gestire la cassa (se attiva)").'
     </dd>
     <dt>Permessi amministrativi</dt>
+    <dd>
+    '.$user_modifica_help.'
+    </dd>
     <dd>
     '.r($user_permission & perm::puo_eliminare_messaggi,"Moderare i commenti").'
     </dd>
