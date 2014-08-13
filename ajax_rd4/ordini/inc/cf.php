@@ -47,20 +47,30 @@ $oa =' <li>
     //2014-09-19 00:00:00
     $color = "bg-color-greenLight";
     $ciccio = "A";
+    $icona = "<i class='fa fa-edit'></i>";
+
     if($row["data_apertura"]>date("Y-m-d H:i:s")){
         $color = "bg-color-blueLight";
         $ciccio = "F";
+        $icona="";
     }
+
     if($row["data_chiusura"]<date("Y-m-d H:i:s")){
         $color = "bg-color-redLight";
         $ciccio = "C";
+        $icona = "<i class='fa fa-check'></i>";
+    }else{
+
     }
 
     if($row["id_utente"]==_USER_ID){
         $gestore = "SI";
+        $icona = "<i class='fa fa-wrench'></i>";
     }else{
         $gestore = "NO";
+
     }
+
     $content ='<p>Listino: <a href="#">'.$row["descrizione_listini"].'</a></p>
                <p>Ditta: <a href="#">'.$row["descrizione_ditte"].'</a></p>';
 
@@ -68,7 +78,8 @@ $oa =' <li>
              'start'=> $row["data_apertura"],
              'end'=> $row["data_chiusura"],
              'className' => array("event", $color),
-             'icon' => 'fa-cube',
+             'description' => 'di '.$row["fullname"].", ".$row["descrizione_gas"],
+             'icon' => $icona,
              'ciccio' => $ciccio,
              'contenuto' => $content,
              'gestore' => $gestore);

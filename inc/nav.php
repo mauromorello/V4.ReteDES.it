@@ -3,24 +3,8 @@
 		<aside id="left-panel">
 
 			<!-- User info -->
+ 			<div class="login-info">
 
-			<div class="login-info">
-				<span>
-
-					<a href="javascript:void(0);" id="show-shortcut" data-action="toggleShortcut">
-						<!--<img src="<?php echo ASSETS_URL; ?>/img/avatars/sunny.png" alt="me" class="online" />-->
-
-						<i class="fa fa-home"></i>
-					</a>
-					<a href="javascript:void(0);" id="show-shortcut-2" data-action="toggleShortcut">
-
-						<i class="fa fa-gear"></i>
-					</a>
-					<a href="javascript:void(0);" id="show-shortcut-3" data-action="toggleShortcut">
-
-						<i class="fa fa-shopping-cart"></i>
-					</a>
-				</span>
 			</div>
 			<!-- end user info -->
 

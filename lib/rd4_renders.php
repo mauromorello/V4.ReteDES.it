@@ -14,9 +14,9 @@ $h='<div id="'.$id_help.'_help_container">'.$row["note_1"].'</div>';
 $f='<div id="'.$id_help.'_help_footer" class="widget-footer"><code class="note pull-right">Vers. '.$row["valore_int"].' del '.conv_datetime_from_db($row["timbro"]).'</code></div>';
 
 if (_USER_PUO_MODIFICARE_HELP){
-    $modifica_help='<button class="btn btn-warning" id="edita_help_'.$id_help.'"><i class="fa fa-edit" ></i> Modifica</button>';
-    $salva_help='<button class="btn btn-success hidden" id="salva_help_'.$id_help.'"><i class="fa fa-check"></i> Salva le modifiche</button>';
-    $esci_help='<button class="btn btn-danger hidden" id="cancella_help_'.$id_help.'"><i class="fa fa-trash-o" ></i> Esci</button>';
+    $modifica_help='<button class="btn btn-warning" id="edita_help_'.$id_help.'"><i class="fa fa-edit" ></i></button>';
+    $salva_help='<button class="btn btn-success hidden" id="salva_help_'.$id_help.'"><i class="fa fa-check"></i></button>';
+    $esci_help='<button class="btn btn-danger hidden" id="cancella_help_'.$id_help.'"><i class="fa fa-trash-o" ></i></button>';
     $toolbar=array($modifica_help,$salva_help,$esci_help);
 }
 

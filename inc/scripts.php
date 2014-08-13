@@ -69,6 +69,7 @@
 		<!-- Demo purpose only
 		<script src="<?php echo ASSETS_URL; ?>/js/demo.min.js"></script>-->
 
+
 		<!-- MAIN APP JS FILE -->
 		<script src="<?php echo ASSETS_URL; ?>/js_rd4/app.js"></script>
         <script src="<?php echo ASSETS_URL; ?>/js_rd4/rd4.js"></script>

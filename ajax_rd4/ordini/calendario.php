@@ -1,4 +1,4 @@
-<?php require_once("inc/init.php"); ?>
+<?php require_once("inc/init.php"); $ui = new SmartUI;?>
 
 <!-- row -->
 
@@ -16,36 +16,41 @@
 
                 <div class="widget-body">
                     <!-- content goes here -->
-                    <form class="smart-form">
-                        <fieldset>
+                    <form class="smart-form padding-10">
+                            <hr>
                             <section>
-                                    <label class="label font-md">Mostra gli ordini:</label>
-                                    <div class="row">
-                                        <div class="col col-12">
-                                            <label class="checkbox">
+                                    <div class="row margin-top-5">
+                                        <label class="label">Mostra gli ordini:</label>
+                                            <label class="checkbox ">
                                                 <input type="checkbox" name="show_aperti" checked="checked" id="show_aperti">
-                                                <i></i>Aperti</label>
+                                                <i></i>Aperti<span class="pull-right btn btn-xs btn-circle bg-color-greenLight"></span></label>
+
                                             <label class="checkbox">
                                                 <input type="checkbox" name="show_futuri" id="show_futuri">
-                                                <i></i>Futuri</label>
+                                                <i></i>Futuri<span class="pull-right btn btn-xs btn-circle bg-color-blueLight"></span></label>
                                             <label class="checkbox">
                                                 <input type="checkbox" name="show_chiusi" id="show_chiusi">
-                                                <i></i>Chiusi</label>
-                                            <label class="checkbox">
-                                                <input type="checkbox" name="show_gestore" checked="checked" id="show_gestore" >
-                                                <i></i>Che gestisco</label>
-                                            <label class="checkbox">
-                                                <input type="checkbox" name="checkbox">
-                                                <i></i>Nei quali ho comprato</label>
-                                            <label class="checkbox">
-                                                <input type="checkbox" name="checkbox">
-                                                <i></i>Degli altri GAS</label>
-                                        </div>
-
+                                                <i></i>Chiusi<span class="pull-right btn btn-xs btn-circle bg-color-redLight"></span></label>
                                     </div>
                                 </section>
-
-                        </fieldset>
+                                <hr>
+                                <section>
+                                    <div class="row margin-top-5">
+                                        <div class="btn-group-vertical btn-block btn-group-lg">
+                                            <label class="label">Calendario:</label>
+                                            <button type="button" class="btn btn-default" id="mt">
+                                                Mensile
+                                            </button>
+                                            <button type="button" class="btn btn-default" id="ag">
+                                                Settimanale
+                                            </button>
+                                            <button type="button" class="btn btn-default" id="td">
+                                                Giornaliero
+                                            </button>
+                                        </div>
+                                </div>
+                            </section>
+                            <hr>
                     </form>
 
                 </div>
@@ -54,24 +59,7 @@
             <!-- end widget div -->
         </div>
         <!-- end widget -->
-        <!-- new widget -->
-        <div class="jarviswidget jarviswidget-color-blueDark">
-            <header>
-                <h2> Dettaglio </h2>
-            </header>
 
-            <!-- widget div-->
-            <div>
-
-                <div class="widget-body">
-                    <!-- content goes here -->
-                    Contru
-                </div>
-
-            </div>
-            <!-- end widget div -->
-        </div>
-        <!-- end widget -->
     </div>
     <div class="col-sm-12 col-md-12 col-lg-9">
 
@@ -81,25 +69,6 @@
             <header>
                 <span class="widget-icon"> <i class="fa fa-calendar"></i> </span>
                 <h2> Ordini in <?php echo _USER_GAS_NOME ?> </h2>
-                <div class="widget-toolbar">
-                    <!-- add: non-hidden - to disable auto hide -->
-                    <div class="btn-group">
-                        <button class="btn dropdown-toggle btn-xs btn-default" data-toggle="dropdown">
-                            Visualizza: <i class="fa fa-caret-down"></i>
-                        </button>
-                        <ul class="dropdown-menu js-status-update pull-right">
-                            <li>
-                                <a href="javascript:void(0);" id="mt">Mensile</a>
-                            </li>
-                            <li>
-                                <a href="javascript:void(0);" id="ag">Agenda</a>
-                            </li>
-                            <li>
-                                <a href="javascript:void(0);" id="td">Oggi</a>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
             </header>
 
             <!-- widget div-->
@@ -130,7 +99,12 @@
     </div>
 
 </div>
-
+<!-- end row -->
+<div class="row">
+    <div class="col-sm-12 col-md-12 col-lg-12">
+    <?php echo help_render_html("ordini_calendario","Calendario ordini")?>
+    </div>
+</div>
 <!-- end row -->
 
 <script type="text/javascript">
@@ -169,6 +143,8 @@
 
     var pagefunction = function() {
 
+        <?php echo help_render_js("ordini_calendario")?>
+
         // full calendar
 
         var date = new Date();
@@ -185,6 +161,14 @@
         $('#calendar').fullCalendar({
 
             header: hdr,
+
+            dayNames:["Domenica","Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"],
+            dayNamesShort:["Dom","Lun","Mar","Mer","Gio","Ven","Sab"],
+            monthNames:["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"],
+            monthNamesShort:["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"],
+            columnFormat:{month:"ddd",week:"ddd d/M",day:"dddd d/M"},
+            titleFormat:{month:"MMMM yyyy",week:"d MMM[ yyyy]{ '&#8212;'d [ MMM] yyyy}",day:"dddd, d MMM, yyyy"},
+
             buttonText: {
                 prev: '<i class="fa fa-chevron-left"></i>',
                 next: '<i class="fa fa-chevron-right"></i>'
@@ -225,39 +209,29 @@
                         "</span>");
                 }
                 if (!event.icon == "") {
-                    element.find('.fc-event-title').append("<i class='air air-top-right fa " + event.icon +
-                        " '></i>");
+                    element.find('.fc-event-title').append('<span>'+event.icon+'</span>');
                 }
+
+                //SE SONO UN GESTORE
+                //if(event.gestore=="SI"){
+                //    element.find('.fc-event-title').append("<i class='air air-bottom-right fa fa-star'></i>");
+               // }
 
                 if(event.ciccio=="C"){
                     if(!$('#show_chiusi').is(':checked')){
-                        if(event.gestore=="SI"){
-                            console.log("Chiuso e gestore SI");
-                            if(!$('#show_gestore').is(':checked')){return false;}
-                        }else{
                             return false;
-                        }
                     }
                 }
 
                 if(event.ciccio=="F"){
                     if(!$('#show_futuri').is(':checked')){
-                        if(event.gestore=="SI"){
-                            if(!$('#show_gestore').is(':checked')){return false;}
-                        }else{
                             return false;
-                        }
-
                     }
                 }
 
                 if(event.ciccio=="A"){
                     if(!$('#show_aperti').is(':checked')){
-                        if(event.gestore=="SI"){
-                            if(!$('#show_gestore').is(':checked')){return false;}
-                        }else{
                             return false;
-                        }
                     }
                 }
 
@@ -268,6 +242,14 @@
             eventClick: function(event) {
                     $(this).popover({html: true, placement : 'top', content : event.contenuto, title: event.title, container: 'body', viewport : 'body' });
                     $(this).popover('show');
+            },
+
+
+            dayClick: function(date, jsEvent, view) {
+
+                $('#calendar').fullCalendar( 'changeView', 'agendaDay' );
+                $('#calendar').fullCalendar( 'gotoDate', date );
+
             },
 
             windowResize: function (event, ui) {
@@ -313,7 +295,7 @@
         $('#show_aperti').change(function() {
             $('#calendar').fullCalendar('render');
         });
-        $('#show_chiusi, #show_gestore').change(function() {
+        $('#show_chiusi').change(function() {
             $('#calendar').fullCalendar('render');
         });
 
@@ -322,7 +304,8 @@
     // end pagefunction
 
     // loadscript and run pagefunction
-    loadScript("js/plugin/fullcalendar/jquery.fullcalendar.min.js", pagefunction);
+
+    loadScript("js/plugin/fullcalendar/jquery.fullcalendar.min.js",pagefunction);
 
 
 </script>
