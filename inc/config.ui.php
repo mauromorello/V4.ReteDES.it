@@ -92,6 +92,26 @@ $help_menu =  array(
                     )
 );
 
+$fornitori_menu =  array(
+
+
+
+    "title" => "Fornitori",
+    "icon" => "fa-truck",
+    "sub" => array(
+                            "fornitori_tutti" => array(
+                                'title' => 'Tutte le ditte',
+                                "url" => "ajax_rd4/help/help_inizio.php"),
+
+
+                            "fornitori_miei" => array(
+                                'title' => 'Le mie ditte',
+                                "icon" => "fa-star",
+                                "url" => "ajax_rd4/fornitori/miei_fornitori.php")
+
+                    )
+);
+
 $ordini_menu =  array(
 
     "title" => "Ordini",
@@ -113,6 +133,7 @@ $page_nav =array(   "dashboard" => array(
                     "user_home" => $user_menu,
                     "gas_menu" => $gas_menu,
                     "ordini_menu" => $ordini_menu,
+                    "fornitori_menu" => $fornitori_menu,
                     "help_menu" => $help_menu
             );
 
