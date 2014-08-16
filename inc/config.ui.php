@@ -115,7 +115,7 @@ $fornitori_menu =  array(
 $ordini_menu =  array(
 
     "title" => "Ordini",
-    "icon" => "fa-cubes",
+    "icon" => "fa-shopping-cart",
     "sub" => array(
                                 "ordini_calendario" => array(
                                 'title' => 'calendario',
