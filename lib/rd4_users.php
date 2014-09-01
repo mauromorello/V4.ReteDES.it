@@ -151,6 +151,15 @@ function IsLoggedIn(){
 
            define("_GAS_CASSA_VISUALIZZAZIONE_SALDO",$row['valore_text']=='SI' ? true: false );
 
+           //GAS CASSA DEFAUL SOLO CASSATI
+           $stmt = $db->prepare("SELECT * FROM retegas_options WHERE id_gas =:id_gas AND chiave ='_GAS_CASSA_DEFAULT_SOLO_CASSATI';");
+           $stmt->bindValue(':id_gas', _USER_ID_GAS, PDO::PARAM_INT);
+           $stmt->execute();
+           $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+           define("_GAS_CASSA_DEFAULT_SOLO_CASSATI",$row['valore_text']=='SI' ? true: false );
+
+
 
            //DES
            $stmt = $db->prepare("SELECT * FROM retegas_des WHERE id_des=:id LIMIT 1;");

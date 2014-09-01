@@ -137,12 +137,12 @@ $h ='<table id="dt_miacassa" class="table table-striped" width="100%">
         <thead>
          <tr>
 
-        <th >#</th>
+        <th data-class="expand">#</th>
         <th data-hide="phone,tablet">Data</th>
         <th data-hide="phone,tablet">Tipo</th>
         <th>Credito</th>
         <th>Debito</th>
-        <th data-class="expand">Descrizione</th>
+        <th >Descrizione</th>
         <th data-hide="phone">Ordine</th>
         <th data-hide="phone">Cassiere</th>
         <th data-hide="phone">REG</th>

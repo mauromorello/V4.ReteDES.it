@@ -47,8 +47,40 @@ function plog($var, $pre=true, $return=false) {
 function elog($log, $fn = "debug.log") {
     $fp = fopen($fn, "a");
     fputs($fp, "[".date("d-m-Y h:i:s")."][Log] $log\r\n");
-    fclose($fp); 
+    fclose($fp);
 }
 
+function conv_date_to_db ($data){
+  //list ($d, $m, $y) = explode ("/", $data);
+  $d=substr($data, 0, 2);
+  $m=substr($data, 3, 2);
+  $y=substr($data, 6, 4);
+  $h=substr($data, 11, 2);
+  $min=substr($data, 14, 2);
+  $sec=substr($data, 17, 2);
 
+  if(empty($h)){$h="00";}
+  if(empty($min)){$min="00";}
+  if(empty($sec)){$sec="00";}
+
+  return "$y-$m-$d $h:$min:$sec";
+}
+function gas_mktime($data){
+  // 01 / 01 / 2010  15: 00: 00
+  // 01 2 34 5 67891 123 456 78
+  // 20 0 0- 1 0-31
+  $d=substr($data, 0, 2);
+  $m=substr($data, 3, 2);
+  $y=substr($data, 6, 4);
+  $h=substr($data, 11, 2);
+  $min=substr($data, 14, 2);
+  $sec=substr($data, 17, 2);
+  if(empty($h)){$h="00";}
+  if(empty($min)){$min="00";}
+  if(empty($sec)){$sec="00";}
+
+
+  return  mktime($h, $min, $sec, $m, $d, $y);
+
+}
 ?>

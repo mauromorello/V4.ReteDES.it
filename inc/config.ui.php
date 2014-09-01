@@ -101,7 +101,7 @@ $fornitori_menu =  array(
     "sub" => array(
                             "fornitori_tutti" => array(
                                 'title' => 'Tutte le ditte',
-                                "url" => "ajax_rd4/help/help_inizio.php"),
+                                "url" => "ajax_rd4/fornitori/tutti_fornitori.php"),
 
 
                             "fornitori_miei" => array(
@@ -112,6 +112,15 @@ $fornitori_menu =  array(
                     )
 );
 
+if(_USER_PERMISSIONS & perm::puo_creare_ordini){
+    $ordini_menu_nuovo = array("title" => "nuovo",
+                                "icon" => "fa-star",
+                                "url" => "ajax_rd4/ordini/nuovo.php");
+}else{
+   $ordini_menu_nuovo = array("title" => "nuovo",
+                            "icon" => "fa-lock");
+}
+
 $ordini_menu =  array(
 
     "title" => "Ordini",
@@ -120,9 +129,12 @@ $ordini_menu =  array(
                                 "ordini_calendario" => array(
                                 'title' => 'calendario',
                                 'icon' => 'fa-calendar',
-                                "url" => "ajax_rd4/ordini/calendario.php")
+                                "url" => "ajax_rd4/ordini/calendario.php"),
+                                "ordini_nuovo" => $ordini_menu_nuovo
                     )
 );
+
+
 
 
 $page_nav =array(   "dashboard" => array(

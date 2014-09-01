@@ -49,5 +49,6 @@ require_once("class.parsedown.php");
 require_once("rd4_users.php");
 require_once("rd4_check.php");
 require_once("rd4_renders.php");
+require_once("rd4_ordini.php");
 
 ?>
