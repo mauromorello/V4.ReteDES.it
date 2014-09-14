@@ -134,6 +134,7 @@ function IsLoggedIn(){
            define("_USER_GAS_LAT",$row["gas_gc_lat"]);
            define("_USER_GAS_LNG",$row["gas_gc_lng"]);
            define("_USER_GAS_ID_DES",$row["id_des"]);
+           define("_USER_ID_DES",$row["id_des"]);
 
            //GAS CASSA
            $stmt = $db->prepare("SELECT * FROM retegas_options WHERE id_gas =:id_gas AND chiave ='_GAS_USA_CASSA';");

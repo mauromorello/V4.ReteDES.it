@@ -59,11 +59,15 @@ $user_menu = array(
                     )
                 );
 
-$gas_menu =  array(
+$gas_menu = array(
     "title" => _USER_GAS_NOME,
-    "url" => "ajax_rd4/gas_home.php",
-    "icon" => "fa-home"
-    );
+    "icon" => "fa-home",
+    "sub" => array(
+                            "gas_home" => array(
+                                'title' => 'Scheda',
+                                "url" => "ajax_rd4/gas/gas_home.php")
+                    )
+);
 
 $help_menu =  array(
 

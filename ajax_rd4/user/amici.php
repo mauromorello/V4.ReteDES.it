@@ -76,7 +76,7 @@ $wg_ami->header = array(
     <div class="row">
         <!-- PRIMA COLONNA-->
         <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-            <?php echo help_render_html($page_title); ?>
+            <?php echo help_render_html('amici',$page_title); ?>
             <?php echo $wg_ami->print_html(); ?>
         </article>
     </div>

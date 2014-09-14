@@ -3,7 +3,82 @@ require_once("inc/init.php");
 
 if(!empty($_POST["act"])){
     switch ($_POST["act"]) {
+        case "gas_partecipa":
+        if (!posso_gestire_ordine((int)$_POST['id_ordine'])){
+            echo json_encode(array("result"=>"KO", "msg"=>"Non hai i permessi necessari" ));
+            die();
+         }
 
+         if($_POST["action"]=="insert"){
+             $stmt = $db->prepare("SELECT * FROM retegas_gas WHERE id_gas=:id_gas");
+             $stmt->bindParam(':id_gas', $_POST['value'], PDO::PARAM_INT);
+             $stmt->execute();
+             $row_gas= $stmt->fetch(PDO::FETCH_ASSOC);
+
+             $stmt = $db->prepare("INSERT INTO retegas_referenze (id_ordine_referenze, id_utente_referenze, id_gas_referenze, note_referenza, maggiorazione_percentuale_referenza) VALUES (:id_ordine, '0', :id_gas , '".$row_gas["comunicazione_referenti"]."', '".$row_gas["maggiorazione_ordini"]."');");
+             $stmt->bindParam(':id_ordine', $_POST['id_ordine'], PDO::PARAM_INT);
+             $stmt->bindParam(':id_gas', $_POST['value'], PDO::PARAM_INT);
+             $stmt->execute();
+
+             if($stmt->rowCount()<>1){
+                    $res=array("result"=>"KO", "msg"=>"Errore." );
+             }else{
+                    $res=array("result"=>"OK", "msg"=>"Condiviso con ".$row_gas["descrizione_gas"]);
+             }
+         }else{
+             $stmt = $db->prepare("DELETE FROM retegas_referenze WHERE id_ordine_referenze=:id_ordine AND id_gas_referenze =:id_gas LIMIT 1;");
+             $stmt->bindParam(':id_ordine', $_POST['id_ordine'], PDO::PARAM_INT);
+             $stmt->bindParam(':id_gas', $_POST['value'], PDO::PARAM_INT);
+             $stmt->execute();
+             if($stmt->rowCount()<>1){
+                    $res=array("result"=>"KO", "msg"=>"Errore." );
+             }else{
+                    $res=array("result"=>"OK", "msg"=>"Condivisione tolta");
+             }
+         }
+        echo json_encode($res);
+     break;
+
+        case "start_ordine":
+        if (!posso_gestire_ordine($_POST['pk'])){
+            echo json_encode(array("result"=>"KO", "msg"=>"Non hai i permessi necessari" ));
+            die();
+         }
+
+
+         $stmt = $db->prepare("UPDATE retegas_ordini SET data_apertura = NOW()
+                             WHERE id_ordini=:id_ordini LIMIT 1;");
+
+         $stmt->bindParam(':id_ordini', $_POST['pk'], PDO::PARAM_INT);
+
+         $stmt->execute();
+         if($stmt->rowCount()<>1){
+                $res=array("result"=>"KO", "msg"=>"Errore." );
+         }else{
+                $res=array("result"=>"OK", "msg"=>"L'ordine si aprirà il prima possibile." );
+         }
+        echo json_encode($res);
+     break;
+     case "end_ordine":
+        if (!posso_gestire_ordine($_POST['pk'])){
+            echo json_encode(array("result"=>"KO", "msg"=>"Non hai i permessi necessari" ));
+            die();
+         }
+
+
+         $stmt = $db->prepare("UPDATE retegas_ordini SET data_chiusura = NOW()
+                             WHERE id_ordini=:id_ordini LIMIT 1;");
+
+         $stmt->bindParam(':id_ordini', $_POST['pk'], PDO::PARAM_INT);
+
+         $stmt->execute();
+         if($stmt->rowCount()<>1){
+                $res=array("result"=>"KO", "msg"=>"Errore." );
+         }else{
+                $res=array("result"=>"OK", "msg"=>"L'ordine si chiuderà il prima possibile." );
+         }
+        echo json_encode($res);
+     break;
      case "nuovo_ordine":
 
         //CONTROLLI
@@ -151,7 +226,59 @@ if(!empty($_POST["name"])){
         }
         echo json_encode($res);
      break;
+     case "costo_gestione":
+         if (!posso_gestire_ordine($_POST['pk'])){
+            echo json_encode(array("result"=>"KO", "msg"=>"Non hai i permessi necessari" ));
+            die();
+         }
 
+         $costo_gestione = str_replace(',', '.', $_POST['value']);
+         $costo_gestione = CAST_TO_FLOAT($costo_gestione,0);
+
+         if($costo_gestione<0){
+            echo json_encode(array("result"=>"KO", "msg"=>"Devi immettere un valore superiore a zero." ));
+            die();
+         }
+         $stmt = $db->prepare("UPDATE retegas_ordini SET costo_gestione = :costo_gestione
+                             WHERE id_ordini=:id_ordini LIMIT 1;");
+
+        $stmt->bindParam(':costo_gestione', $costo_gestione, PDO::PARAM_STR);
+        $stmt->bindParam(':id_ordini', $_POST['pk'], PDO::PARAM_INT);
+
+        $stmt->execute();
+        if($stmt->rowCount()<>1){
+            $res=array("result"=>"KO", "msg"=>"Errore." );
+        }else{
+            $res=array("result"=>"OK", "msg"=>"OK" );
+        }
+        echo json_encode($res);
+     break;
+     case "costo_trasporto":
+         if (!posso_gestire_ordine($_POST['pk'])){
+            echo json_encode(array("result"=>"KO", "msg"=>"Non hai i permessi necessari" ));
+            die();
+         }
+         $costo_trasporto= str_replace(',', '.', $_POST['value']);
+         $costo_trasporto = CAST_TO_FLOAT($costo_trasporto,0);
+
+         if($costo_trasporto<0){
+            echo json_encode(array("result"=>"KO", "msg"=>"Devi immettere un valore superiore a zero." ));
+            die();
+         }
+         $stmt = $db->prepare("UPDATE retegas_ordini SET costo_trasporto = :costo_trasporto
+                             WHERE id_ordini=:id_ordini LIMIT 1;");
+
+        $stmt->bindParam(':costo_trasporto', $costo_trasporto, PDO::PARAM_STR);
+        $stmt->bindParam(':id_ordini', $_POST['pk'], PDO::PARAM_INT);
+
+        $stmt->execute();
+        if($stmt->rowCount()<>1){
+            $res=array("result"=>"KO", "msg"=>"Errore." );
+        }else{
+            $res=array("result"=>"OK", "msg"=>"OK" );
+        }
+        echo json_encode($res);
+     break;
      case "data_apertura":
         if (!posso_gestire_ordine($_POST['pk'])){
             echo json_encode(array("result"=>"KO", "msg"=>"Non hai i permessi necessari" ));

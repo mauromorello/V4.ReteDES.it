@@ -58,6 +58,9 @@ $row[0]==1 ? $user_online= "Ci sei solo tu, ma..." : $user_online= $row[0]." ute
 		<!-- SmartAdmin RTL Support is under construction-->
 		<link rel="stylesheet" type="text/css" media="screen" href="<?php echo ASSETS_URL; ?>/css/smartadmin-rtl.min.css">
 
+        <!-- TABLESORTER-->
+        <link rel="stylesheet" type="text/css" media="screen" href="<?php echo ASSETS_URL; ?>/js_rd4/plugin/tablesorter/css/theme.bootstrap.css">
+
 		<!-- We recommend you use "your_style.css" to override SmartAdmin
 		     specific styles this will also ensure you retrain your customization with each SmartAdmin update.
 		<link rel="stylesheet" type="text/css" media="screen" href="<?php echo ASSETS_URL; ?>/css/your_style.css"> -->

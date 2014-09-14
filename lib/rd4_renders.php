@@ -17,7 +17,7 @@ if (_USER_PUO_MODIFICARE_HELP){
     $modifica_help='<button class="btn btn-warning" id="edita_help_'.$id_help.'"><i class="fa fa-edit" ></i></button>';
     $salva_help='<button class="btn btn-success hidden" id="salva_help_'.$id_help.'"><i class="fa fa-check"></i></button>';
     $esci_help='<button class="btn btn-danger hidden" id="cancella_help_'.$id_help.'"><i class="fa fa-trash-o" ></i></button>';
-    $toolbar=array($modifica_help,$salva_help,$esci_help);
+    $toolbar=array($modifica_help,$salva_help);
 }
 
 $options = array(   "editbutton" => false,
@@ -83,23 +83,6 @@ function help_render_js($id_help){
 
 
 
-
-        });";
-
-
-        $a= "$('#cancella_help_$id_help').click(function(){
-
-            $.SmartMessageBox({
-                    title : 'Vuoi uscire ?',
-                    content : 'Le modifiche non verranno salvate.',
-                    buttons : '[NO][SI]'
-                        }, function(ButtonPress, Value) {
-                            if(ButtonPress=='SI'){
-                                $('#".$id_help."_help_container').destroy();
-                                $('#salva_help_$id_help').addClass('hidden');
-                                $('#cancella_help_$id_help').addClass('hidden');
-                            }
-                        });
 
         });";
 

@@ -27,25 +27,26 @@ require_once("smartui/class.smartui.php");
 
 // smart UI plugins
 require_once("smartui/class.smartui-widget.php");
-require_once("smartui/class.smartui-datatable.php");
-require_once("smartui/class.smartui-button.php");
-require_once("smartui/class.smartui-tab.php");
-require_once("smartui/class.smartui-accordion.php");
-require_once("smartui/class.smartui-carousel.php");
-require_once("smartui/class.smartui-smartform.php");
+//require_once("smartui/class.smartui-datatable.php");
+//require_once("smartui/class.smartui-button.php");
+//require_once("smartui/class.smartui-tab.php");
+//require_once("smartui/class.smartui-accordion.php");
+//require_once("smartui/class.smartui-carousel.php");
+//require_once("smartui/class.smartui-smartform.php");
 
 // register our UI plugins
 SmartUI::register('widget', 'Widget');
-SmartUI::register('datatable', 'DataTable');
-SmartUI::register('button', 'Button');
-SmartUI::register('tab', 'Tab');
-SmartUI::register('accordion', 'Accordion');
-SmartUI::register('carousel', 'Carousel');
-SmartUI::register('smartform', 'SmartForm');
+//SmartUI::register('datatable', 'DataTable');
+//SmartUI::register('button', 'Button');
+//SmartUI::register('tab', 'Tab');
+//SmartUI::register('accordion', 'Accordion');
+//SmartUI::register('carousel', 'Carousel');
+//SmartUI::register('smartform', 'SmartForm');
 
 require_once("class.html-indent.php");
 require_once("class.parsedown.php");
 
+require_once("rd4_functions.php");
 require_once("rd4_users.php");
 require_once("rd4_check.php");
 require_once("rd4_renders.php");
