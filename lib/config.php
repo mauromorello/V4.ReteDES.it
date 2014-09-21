@@ -46,6 +46,7 @@ SmartUI::register('widget', 'Widget');
 require_once("class.html-indent.php");
 require_once("class.parsedown.php");
 
+require_once("rd4_classes.php");
 require_once("rd4_functions.php");
 require_once("rd4_users.php");
 require_once("rd4_check.php");

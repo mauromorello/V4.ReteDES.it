@@ -37,7 +37,23 @@ switch ($_POST["act"]) {
             die();
         }
     break;
+    case "nonmostrarepiu":
+        $stmt = $db->prepare("DELETE retegas_options WHERE id_user="._USER_ID." AND chiave = '_V4_NONMOSTRAREPIU' LIMIT 1;");
+        $stmt->bindParam(':value', $_POST['value'], PDO::PARAM_STR);
+        $stmt->execute();
+        $res=array("result"=>"OK", "msg"=>"Ok, come non detto!" );
 
+        if($_POST['value']=="SI"){
+            $stmt = $db->prepare("INSERT INTO retegas_options (id_user,chiave,valore_text)
+                                    VALUES ("._USER_ID.",'_V4_NONMOSTRAREPIU',:value)");
+            $stmt->bindParam(':value', $_POST['value'], PDO::PARAM_STR);
+            $stmt->execute();
+            $res=array("result"=>"OK", "msg"=>"Ricarica la pagina per non vedere più il benvenuto" );
+        }
+
+
+        echo json_encode($res);
+    break;
     default :
     $res=array("result"=>"KO", "msg"=>"Comando '".$_POST["act"]."' non riconosciuto" );
     echo json_encode($res);

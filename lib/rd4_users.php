@@ -69,7 +69,7 @@ function IsLoggedIn(){
         //$result = $db->sql_query("SELECT * FROM maaking_users WHERE userid='$userid'");
         //$row = $db->sql_fetchrow($result);
 
-        $stmt = $db->prepare("SELECT * FROM maaking_users WHERE userid=:id LIMIT 1;");
+        $stmt = $db->prepare("SELECT * FROM maaking_users WHERE userid=:id and isactive=1 LIMIT 1;");
         $stmt->bindValue(':id', $userid, PDO::PARAM_INT);
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -122,6 +122,12 @@ function IsLoggedIn(){
            $stmt->execute();
            $row = $stmt->fetch(PDO::FETCH_ASSOC);
            define("_USER_ALERT_DAYS",$row["valore_int"]);
+
+           //USER NON MOSTRARE PIU
+           $stmt = $db->prepare("SELECT * FROM retegas_options WHERE id_user="._USER_ID." AND chiave='_V4_NONMOSTRAREPIU' LIMIT 1;");
+           $stmt->execute();
+           $row = $stmt->fetch(PDO::FETCH_ASSOC);
+           define("_USER_NONMOSTRAREHELPHOME",$row["valore_text"]=='SI' ? true: false);
 
            //GAS
            $stmt = $db->prepare("SELECT * FROM retegas_gas WHERE id_gas=:id LIMIT 1;");
@@ -183,4 +189,20 @@ function IsLoggedIn(){
     define("_USER_LOGGED_IN",false);
     return 0;
 
+}
+
+function notifications(){
+    return  notifications_ordini()+
+            notifications_users()+
+            notifications_cassa();
+}
+
+function notifications_users(){
+    return 1;
+}
+function notifications_cassa(){
+    return 1;
+}
+function notifications_ordini(){
+    return 1;
 }

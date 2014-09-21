@@ -5,7 +5,6 @@ $ui = new SmartUI;
 $page_title = "Cruscotto";
 
 $h=file_get_contents("help/home.html");
-
 $options = array(   "editbutton" => false,
                     "fullscreenbutton"=>false,
                     "deletebutton"=>true,
@@ -263,7 +262,7 @@ $wg_oco->header = array(
     <div class="row">
         <!-- PRIMA COLONNA-->
         <article class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
-            <?php echo $wg_help->print_html(); ?>
+            <?php if(!_USER_NONMOSTRAREHELPHOME){echo $wg_help->print_html();} ?>
             <?php echo $wg_oco->print_html(); ?>
         </article>
         <article class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
@@ -281,6 +280,25 @@ $wg_oco->header = array(
     pageSetUp();
 
     var pagefunction = function() {
+
+        $(document).on('change','#nonmostrarepiu',function(){
+            if(this.checked) {value = "SI";}else{value = "NO";}
+            $.ajax({
+                      type: "POST",
+                      url: "ajax_rd4/_act_main.php",
+                      dataType: 'json',
+                      data: {act: "nonmostrarepiu", value : value},
+                      context: document.body
+                    }).done(function(data) {
+                        if(data.result=="OK"){
+                            ok(data.msg);
+                        }else{
+                            ko(data.msg);
+                        }
+
+                    });
+        });
+
         // clears memory even if nothing is in the function
         $.extend($.tablesorter.themes.bootstrap, {
             // these classes are added to the table. To see other table classes available,

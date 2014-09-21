@@ -111,7 +111,12 @@ $fornitori_menu =  array(
                             "fornitori_miei" => array(
                                 'title' => 'Le mie ditte',
                                 "icon" => "fa-star",
-                                "url" => "ajax_rd4/fornitori/miei_fornitori.php")
+                                "url" => "ajax_rd4/fornitori/miei_fornitori.php"),
+
+                           "listini_miei" => array(
+                                'title' => 'I miei listini',
+                                "icon" => "fa-star",
+                                "url" => "ajax_rd4/listini/miei.php")
 
                     )
 );

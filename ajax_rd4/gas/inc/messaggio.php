@@ -16,7 +16,7 @@ $row = $stmt->fetch(PDO::FETCH_ASSOC);
     <div class="row">
         <div class="col-md-12">
             <div class="form-group">
-                <textarea id="usermessage" class="form-control" placeholder="Messaggio" rows="5" required ></textarea>
+                <textarea id="usermessage" class="form-control" placeholder="Scrivi qua..." rows="5" required ></textarea>
             </div>
         </div>
     </div>

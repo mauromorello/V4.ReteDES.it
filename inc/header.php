@@ -32,6 +32,9 @@ $row = $stmt->fetch();
 $row[0]==1 ? $user_online= "Ci sei solo tu, ma..." : $user_online= $row[0]." utenti, e intanto...";
 
 
+$notifications = notifications();
+
+
 ?>
 <!DOCTYPE html>
 <html lang="it-IT" <?php echo implode(' ', array_map(function($prop, $value) {
@@ -120,38 +123,43 @@ $row[0]==1 ? $user_online= "Ci sei solo tu, ma..." : $user_online= $row[0]." ute
 
 						<!-- Note: The activity badge color changes when clicked and resets the number to 0
 						Suggestion: You may want to set a flag when this happens to tick off all checked messages / notifications -->
-						<span id="activity" class="activity-dropdown"> <i class="fa fa-user"></i> <b class="badge"> 21 </b> </span>
+                        <?php if($notifications>0){ ?>
+                        <span id="activity" class="activity-dropdown"> <i class="fa fa-user"></i> <b class="badge"> <?php echo $notifications; ?> </b> </span>
 
 						<!-- AJAX-DROPDOWN : control this dropdown height, look and feel from the LESS variable file -->
 						<div class="ajax-dropdown">
 
 							<!-- the ID links are fetched via AJAX to the ajax container "ajax-notifications" -->
+
 							<div class="btn-group btn-group-justified" data-toggle="buttons">
-								<label class="btn btn-default">
+                                <label class="btn btn-default">
+                                    <input type="radio" name="activity" id="<?php echo APP_URL; ?>/ajax/notify/tasks.html">
+                                    ORDINI </label>
+                                <label class="btn btn-default">
 									<input type="radio" name="activity" id="<?php echo APP_URL; ?>/ajax/notify/mail.html">
-									Avvisi</label>
+									UTENTI </label>
 								<label class="btn btn-default">
 									<input type="radio" name="activity" id="<?php echo APP_URL; ?>/ajax/notify/notifications.html">
-									Scadenze</label>
-								<label class="btn btn-default">
-									<input type="radio" name="activity" id="<?php echo APP_URL; ?>/ajax/notify/tasks.html">
-									Cassa</label>
+									CASSA </label>
+
 							</div>
 
 							<!-- notification content -->
 							<div class="ajax-notifications custom-scroll">
 
 								<div class="alert alert-transparent">
-									<h4>Seleziona cosa vuoi vedere</h4>
-									This blank page message helps protect your privacy, or you can show the first message here automatically.
-								</div>
-
-								<i class="fa fa-lock fa-4x fa-border"></i>
+									<h4 class="text-center">Hai delle notifiche:</h4>
+                                    <ul class="notification-body">
+									    <li class="text-lg"><i class="fa fa-2x fa-user"></i>&nbsp;  sugli utenti o account: <strong><?php echo notifications_users(); ?></strong> </li>
+                                        <li><i class="fa fa-2x fa-shopping-cart"></i>&nbsp;   sugli ordini: <strong><?php echo notifications_ordini(); ?></strong> </li>
+                                        <li><i class="fa fa-2x fa-bank"></i>&nbsp;   sulla cassa: <strong><?php echo notifications_cassa(); ?></strong> </li>
+                                    </ul>
+                                </div>
 
 							</div>
 							<!-- end notification content -->
 
-							<!-- footer: refresh area -->
+							<!-- footer: refresh area
 							<span> Ultimo aggiornamento: 12/12/2013 9:43AM
 								<button type="button" data-loading-text="<i class='fa fa-refresh fa-spin'></i> Loading..." class="btn btn-xs btn-default pull-right">
 									<i class="fa fa-refresh"></i>
@@ -160,6 +168,7 @@ $row[0]==1 ? $user_online= "Ci sei solo tu, ma..." : $user_online= $row[0]." ute
 
 						</div>
 						<!-- END AJAX-DROPDOWN -->
+                        <?php } //ENDIF NOTIFCATION?>
 					</div>
 
 					<!-- projects dropdown -->

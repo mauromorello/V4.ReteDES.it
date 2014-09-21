@@ -49,8 +49,9 @@ if(isset($_POST["id_ditta"])){
                     </li>';
         }else{
             $li.= '<li class="list-group-item" >
+
                     '.$icona_scade.'
-                    <strong class="font-sm" style="cursor:pointer" rel="C">'.$row["descrizione_listini"].'</strong><br>
+                    <strong class="font-sm" style="cursor:pointer" rel="C"><a href="#ajax_rd4/listini/listino.php?id='.$row["id_listini"].'">'.$row["descrizione_listini"].'</a></strong><br>
                     <i class="fa fa-user"></i>&nbsp;'.$utente["fullname"].' <i class="fa fa-home"></i>&nbsp;'.$utente["descrizione_gas"].'&nbsp;&nbsp;<small class="font-xs"><i class="fa fa-cubes"></i>&nbsp;<b>'.$articoli["conto"].'</b></small><br>
                     '.$magazzino.'
                     '.$scade.'

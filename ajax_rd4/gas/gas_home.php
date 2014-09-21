@@ -1,6 +1,8 @@
 <?php
 require_once("inc/init.php");
 $ui = new SmartUI;
+$converter = new Encryption;
+
 $page_title = "Il mio GAS";
 
 $stmt = $db->prepare("SELECT * FROM  maaking_users WHERE id_gas = '"._USER_ID_GAS."'");
@@ -8,11 +10,13 @@ $stmt->execute();
 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 foreach ($rows as $row) {
 
+    $useridEnc = $converter->encode($row["userid"]);
+
     $status ="";
     $status_n ="Attivo";
     $activate ='';
     $suspend ='<li>
-                    <a href="javascript:void(0);">Sospendi</a>
+                    <a href="javascript:sospendi(\''.$useridEnc.'\',\''.$row["fullname"].'\');"><i class="fa fa-warning"></i>&nbsp;Sospendi</a>
                 </li>';
     $delete ='';
 
@@ -20,11 +24,11 @@ foreach ($rows as $row) {
         $status = " warning ";
         $status_n = "Sospeso";
         $activate ='<li>
-                    <a href="javascript:void(0);">Attiva</a>
+                    <a href="javascript:attiva(\''.$useridEnc.'\',\''.$row["fullname"].'\');"><i class="fa fa-check"></i>&nbsp; Attiva</a>
                 </li>';
         $suspend ='';
         $delete = '<li>
-                    <a href="javascript:void(0);">Elimina</a>
+                    <a href="javascript:elimina(\''.$useridEnc.'\',\''.$row["fullname"].'\');"><i class="fa fa-trash-o"></i>&nbsp;Elimina</a>
                   </li>';
     }
     if($row["isactive"]==3){
@@ -33,7 +37,7 @@ foreach ($rows as $row) {
         $suspend ='';
         $delete='';
         $activate ='<li>
-                    <a href="javascript:void(0);">Attiva</a>
+                    <a href="javascript:attiva(\''.$useridEnc.'\',\''.$row["fullname"].'\');"><i class="fa fa-check"></i>&nbsp; Attiva</a>
                 </li>';
     }
     if($row["isactive"]==0){
@@ -41,51 +45,48 @@ foreach ($rows as $row) {
         $status_n = "in Attesa";
         $suspend ='';
         $delete='<li>
-                    <a href="javascript:void(0);">Elimina</a>
+                    <a href="javascript:elimina(\''.$useridEnc.'\',\''.$row["fullname"].'\');"><i class="fa fa-trash-o"></i>&nbsp; Elimina</a>
                   </li>';
         $activate ='<li>
-                     <a href="javascript:void(0);">Attiva</a>
+                     <a href="javascript:attiva(\''.$useridEnc.'\',\''.$row["fullname"].'\');"><i class="fa fa-check"></i>&nbsp; Attiva</a>
                     </li>';
     }
 
 
-    if(_USER_PERMISSIONS & perm::puo_creare_gas){
-        $p = '<li class="divider"></li>
-                '.$activate.'
+    if(_USER_PERMISSIONS & perm::puo_gestire_utenti){
+        $p = '  '.$activate.'
                 '.$suspend.'
                 '.$delete.'
              ';
-
-    }else{
-        $p = '';
-    }
-    if((_USER_PERMISSIONS & perm::puo_creare_gas) OR $row["isactive"]==1){
-
-        $z .= '<tr rel="'.$row["userid"].'" class="'.$status.'">
-                <td>'.$row["fullname"].'</td>
-                <td>'.$row["email"].'</td>
-                <td>'.$row["tel"].'</td>
-                <td>'.$status_n.'</td>
-                <td><div class="btn-group">
+        $p1='<div class="btn-group">
                                 <button class="btn btn-default dropdown-toggle" data-toggle="dropdown">
                                     <i class="fa fa-gear"></i>
                                 </button>
                                 <ul class="dropdown-menu">
-                                    <li>
-                                        <a data-id="'.$row["userid"].'" href="ajax_rd4/gas/inc/messaggio.php?id='.$row["userid"].'" data-toggle="modal" data-target="#remoteModal">Messaggia</a>
-                                    </li>
+                                    <li><a data-id="'.$row["userid"].'" href="ajax_rd4/gas/inc/messaggio.php?id='.$row["userid"].'" data-toggle="modal" data-target="#remoteModal"><i class="fa fa-envelope"></i>&nbsp; Messaggia</a></li>
+                                    <li class="divider"></li>
                                     '.$p.'
                                 </ul>
-                            </div>
+        </div>';
+    }else{
+        $p1 = '<a class="btn btn-default" data-id="'.$row["userid"].'" href="ajax_rd4/gas/inc/messaggio.php?id='.$row["userid"].'" data-toggle="modal" data-target="#remoteModal"><i class="fa fa-envelope"></i></a>';
+    }
+    if((_USER_PERMISSIONS & perm::puo_gestire_utenti) OR $row["isactive"]==1){
+
+        $z .= '<tr rel="'.$useridEnc.'" class="'.$status.'">
+                <td>'.$row["fullname"].'</td>
+                <td>'.$row["email"].'</td>
+                <td>'.$row["tel"].'</td>
+                <td>'.$status_n.'</td>
+                <td>
+                     '.$p1.'
                 </td>
               </tr>';
     }
 }
 
 
-$a='<div class="table-responsive">
-
-                            <table id="dt_utenti_gas" class="table table-striped">
+$a='                            <table id="dt_utenti_gas" class="table table-striped margin-top-10">
                                 <thead>
                                     <tr>
                                         <th>Nome</th>
@@ -100,14 +101,74 @@ $a='<div class="table-responsive">
                                 </tbody>
                             </table>
 
-                        </div>';
+                        ';
+if(_USER_PERMISSIONS & perm::puo_gestire_utenti){
+
+    $stmt = $db->prepare("SELECT count(*) FROM  maaking_users WHERE id_gas='"._USER_ID_GAS."'");
+    $stmt->execute();
+    $row = $stmt->fetch(PDO::FETCH_NUM);
+    $user_Tutti = $row[0];
+
+    $stmt = $db->prepare("SELECT count(*) FROM  maaking_users WHERE id_gas='"._USER_ID_GAS."' and isactive=1");
+    $stmt->execute();
+    $row = $stmt->fetch(PDO::FETCH_NUM);
+    $user_Attivi = $row[0];
+
+    $stmt = $db->prepare("SELECT count(*) FROM  maaking_users WHERE id_gas='"._USER_ID_GAS."' and isactive=2");
+    $stmt->execute();
+    $row = $stmt->fetch(PDO::FETCH_NUM);
+    $user_Sospesi = $row[0];
+
+    $stmt = $db->prepare("SELECT count(*) FROM  maaking_users WHERE id_gas='"._USER_ID_GAS."' and isactive=3");
+    $stmt->execute();
+    $row = $stmt->fetch(PDO::FETCH_NUM);
+    $user_Eliminati = $row[0];
+
+    $stmt = $db->prepare("SELECT count(*) FROM  maaking_users WHERE id_gas='"._USER_ID_GAS."' and isactive=0");
+    $stmt->execute();
+    $row = $stmt->fetch(PDO::FETCH_NUM);
+    $user_Attesa = $row[0];
+    if ($user_Attesa>0){
+        $btn_Attesa = '<a class="show_Attesa btn btn-success">in Attesa (<b>'.$user_Attesa.'</b>)</a>';
+    }else{
+        $btn_Attesa = "";
+    }
+
+$mp ='
+        <div class="row ">
+            <div class=" col-xs-4">
+                <h4>Filtra la tabella:</h4>
+                <div class="btn-group-vertical btn-block">
+                    <a class="show_Tutti btn btn-default">Tutti (<b>'.$user_Tutti.'</b>)</a>
+                    <a class="show_Sospesi btn btn-default">Sospesi (<b>'.$user_Sospesi.'</b>)</a>
+                    <a class="show_Attivi btn btn-default">Attivi (<b>'.$user_Attivi.'</b>)</a>
+                    <a class="show_Eliminati btn btn-default">Eliminati (<b>'.$user_Eliminati.'</b>)</a>
+                    '.$btn_Attesa.'
+                </div>
+            </div>
+
+            <div class="col-xs-4">
+                <h4>Composizione GAS</h4>
+                <br>
+                <div style="margin-left: auto;margin-right: auto; width: 70%;">
+                    <span  class="sparkline"  data-sparkline-type="pie" data-sparkline-offset="90" data-sparkline-piesize="128px">'.$user_Attivi.','.$user_Sospesi.','.$user_Eliminati.','.$user_Attesa.'</span>
+                </div>
+            </div>
+            <div class="col-xs-4">
+                <h4>Info <small>(Clicca su una riga...)</small></h4>
+                <div id="schedina_utente"></div>
+            </div>
+        </div>
+      ';
+
+}
 $options = array(   "editbutton" => false,
                     "fullscreenbutton"=>true,
                     "deletebutton"=>false,
                     "colorbutton"=>true);
 $wg_utentigas = $ui->create_widget($options);
 $wg_utentigas->id = "wg_utentigas";
-$wg_utentigas->body = array("content" => $a,"class" => "no-padding");
+$wg_utentigas->body = array("content" => $mp.'<hr>'.$a,"class" => "");
 $wg_utentigas->header = array(
     "title" => '<h2>Utenti</h2>',
     "icon" => 'fa fa-group'
@@ -240,7 +301,9 @@ $geo_users = rtrim($geo_users,", ");
         //------------HELP WIDGET
         <?php echo help_render_js('gas_home');?>
         //------------END HELP WIDGET
-        var table= $('#dt_utenti_gas').dataTable();
+        var oTable= $('#dt_utenti_gas').dataTable({
+                                            "bPaginate": false
+                                        });
         var id;
         var messaggio;
 
@@ -285,8 +348,113 @@ $geo_users = rtrim($geo_users,", ");
             //chiudo il modal
             $('#remoteModal').modal('hide');
         });
-    }
 
+        $('.show_Attesa').click(function(){oTable.fnFilter( 'in Attesa',3 );});
+        $('.show_Attivi').click(function(){oTable.fnFilter( 'Attivo',3 );});
+        $('.show_Sospesi').click(function(){oTable.fnFilter( 'Sospeso',3 );});
+        $('.show_Eliminati').click(function(){oTable.fnFilter( 'Eliminato',3 );});
+        $('.show_Tutti').click(function(){  oTable.fnFilter('',3);
+                                            oTable.fnFilter('');});
+        //MOstro solo gli attivi
+        oTable.fnFilter( 'Attivo',3 );
+
+        //se clicco
+        $('#dt_utenti_gas tbody').on( 'click', 'tr', function () {
+            var value = $(this).attr('rel');
+                $.ajax({
+                  type: "POST",
+                  url: "ajax_rd4/gas/inc/info_utente.php",
+                  data: {userid : value},
+                  context: document.body
+               }).done(function(data) {
+
+                   $('#schedina_utente').html(data);
+
+
+            });
+        } );
+
+
+    } // end pagefunction
+
+
+    var attiva = function(userid, fullname) {
+
+            $.SmartMessageBox({
+                title : "Attiva " + fullname,
+                content : "Verrà comunicata l'avvenuta attivazione con una mail.",
+                buttons : "[Esci][Attiva]"
+            }, function(ButtonPress, Value) {
+
+                if(ButtonPress=="Attiva"){
+
+                    $.ajax({
+                          type: "POST",
+                          url: "ajax_rd4/gas/_act.php",
+                          dataType: 'json',
+                          data: {act: "attiva_utente", value : userid},
+                          context: document.body
+                        }).done(function(data) {
+                            if(data.result=="OK"){
+                                    ok(data.msg);}else{ko(data.msg);}
+                                    //location.reload();
+                        });
+                }
+            });
+        }
+    var sospendi = function(userid, fullname) {
+
+            $.SmartMessageBox({
+                title : "Sospendi " + fullname,
+                content : "L'utente rimarrà sospeso fino ad una nuova riattivazione.",
+                buttons : "[Esci][Sospendi]"
+            }, function(ButtonPress, Value) {
+
+                if(ButtonPress=="Sospendi"){
+
+                    $.ajax({
+                          type: "POST",
+                          url: "ajax_rd4/gas/_act.php",
+                          dataType: 'json',
+                          data: {act: "sospendi_utente", value : userid},
+                          context: document.body
+                        }).done(function(data) {
+                            if(data.result=="OK"){
+                                    ok(data.msg);
+                                    //location.reload();
+                            }else{ko(data.msg);}
+
+                        });
+                }
+            });
+        }
+
+        var elimina = function(userid, fullname) {
+
+            $.SmartMessageBox({
+                title : "Elimina " + fullname,
+                content : "L'utente eliminato non potrà più accedere, nè reiscriversi con la stessa mail.<br>Tutti i suoi dati (ordini, listini ecc) saranno comunque conservati.",
+                buttons : "[Esci][Elimina]"
+            }, function(ButtonPress, Value) {
+
+                if(ButtonPress=="Elimina"){
+
+                    $.ajax({
+                          type: "POST",
+                          url: "ajax_rd4/gas/_act.php",
+                          dataType: 'json',
+                          data: {act: "elimina_utente", value : userid},
+                          context: document.body
+                        }).done(function(data) {
+                            if(data.result=="OK"){
+                                    ok(data.msg);
+                                    //location.reload();
+                            }else{ko(data.msg);}
+
+                        });
+                }
+            });
+        }
     $(window).unbind('gMapsLoaded');
 
     function loadMap(){
