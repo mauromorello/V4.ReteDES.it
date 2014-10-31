@@ -1,4 +1,5 @@
 .htaccess
+lib_rd4/
 lib/swiftmailer/
 lib/sendgrid/
 ajax/
@@ -10,6 +11,7 @@ lib/util.php
 php/
 sound/
 xml/
+public_rd4/
 dummy.php
 forgotpassword.php
 lock.php

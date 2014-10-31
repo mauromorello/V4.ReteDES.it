@@ -83,4 +83,17 @@ function gas_mktime($data){
   return  mktime($h, $min, $sec, $m, $d, $y);
 
 }
+
+function rd4_rowCount($sql){
+
+    //IN CASO DI PDO FAIL
+    global $db;
+    $result = $db->prepare($sql);
+    $result->execute();
+	
+	//return $result->fetchColumn(); 
+    return $result->rowCount();
+    //return count($result->fetchAll());
+    //return print_r($result->fetchAll());
+}
 ?>

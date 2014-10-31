@@ -213,9 +213,9 @@ $notifications = notifications();
 						<!-- Top menu profile link : this shows only when top menu is active -->
 						<ul id="mobile-profile-img" class="header-dropdown-list hidden-xs padding-5">
 							<li class="">
-								<!--<a href="#" class="dropdown-toggle no-margin userdropdown" data-toggle="dropdown">
-									<img src="<?php echo ASSETS_URL; ?>/img/avatars/sunny.png" alt="John Doe" class="online" />
-								</a>-->
+								<a href="#" class="dropdown-toggle no-margin userdropdown" data-toggle="dropdown">
+									<img src="<?php echo src_user(_USER_ID,64); ?>" alt="John Doe" class="online" />
+								</a>
 								<ul class="dropdown-menu pull-right">
 									<li>
 										<a href="javascript:void(0);" class="padding-10 padding-top-0 padding-bottom-0"><i class="fa fa-cog"></i> Setting</a>

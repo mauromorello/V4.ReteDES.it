@@ -36,12 +36,12 @@ $s =<<<SEMPLICE
 <form>
 
     <fieldset>
-        <section class="margin-top-10 well well-sm">
+        <section class="margin-top-10">
             <label for="descrizione_ordini">Titolo</label>
             <h3><i class="fa fa-pencil pull-right"></i>&nbsp;&nbsp;<span class="editable" id="descrizione_ordini" data-pk="{$rowo["id_ordini"]}">{$rowo["descrizione_ordini"]}</span></h3>
         </section>
 
-        <section class="margin-top-10 well well-sm">
+        <section class="margin-top-10">
          <label for="note_ordini">Note</label>
          <div class="summer" id="note_ordini">{$rowo["note_ordini"]}</div>
          <button class="btn btn-success pull-right margin-top-10">Salva le note</button>
@@ -100,12 +100,12 @@ $d =<<<SEMPLICE
 <form>
 
     <fieldset>
-        <section class="margin-top-10 well well-sm">
+        <section class="margin-top-10">
             <label for="data_apertura">Data / ora apertura ordine</label><br>
             <i class="fa {$ic_ap} fa-2x pull-right"></i>&nbsp;&nbsp;<a class="font-xl {$ed_ap}" id="data_apertura" data-type="combodate" data-template="DD MM YYYY  HH : mm" data-format="DD/MM/YYYY HH:mm" data-viewformat="DD/MM/YYYY HH:mm" data-pk="{$rowo["id_ordini"]}" data-original-title="Seleziona da questo elenco:">{$rowo["data_apertura"]}</a>
         </section>
 
-        <section class="margin-top-10 well well-sm">
+        <section class="margin-top-10">
             <label for="data_apertura" >Data / ora chiusura ordine</label><br>
             <i class="fa fa-pencil fa-2x pull-right" ></i>&nbsp;&nbsp;<a class="font-xl date_ordine" id="data_chiusura" data-type="combodate" data-template="DD MM YYYY  HH : mm" data-format="DD/MM/YYYY HH:mm" data-viewformat="DD/MM/YYYY HH:mm" data-pk="{$rowo["id_ordini"]}" data-original-title="Seleziona da questo elenco:">{$rowo["data_chiusura"]}</a>
         </section>
@@ -265,27 +265,27 @@ $wg_edit_partecipazione->header = array(
 );
 
 //OPERAZIONI
+if (posso_gestire_ordine($id_ordine)){
+    $pagina_rettifiche ='<div class="well text-center"><a href="#ajax_rd4/rettifiche/start.php?id='.$id_ordine.'" class="btn btn-md btn-default btn-block font-md"><i class="fa fa-2x fa-pencil pull-left"></i><p></p>RETTIFICA..</a><br><span class="font-xs">...fai coincidere il totale reale con quello di reteDES.</span></div>';
+}else{
+    $pagina_rettifiche ='';
+}
 
 
 $o =<<<SEMPLICE
-            <div class="well margin-top-10 ">
-                <label>Stato dell'ordine</label><br>
-                <div class="btn-group btn-group-justified">{$btn_ap}{$btn_ch}{$btn_co}</div>
+            <div class="margin-top-10 ">
+                <label>Apri / Chiudi</label><br>
+                <div class="btn-group btn-group-justified">{$btn_ap}{$btn_ch}</div>
             </div>
-            <div class="well margin-top-10">
-                <label>Rettifiche</label><br>
-                <div class="btn-group btn-group-justified">
-                    <a class="btn btn-default btn-md">TOTALE</a>
-                    <a class="btn btn-default btn-md">UTENTE</a>
-                    <a class="btn btn-default btn-md">DETTAGLIO</a>
-                </div>
+            <div class="margin-top-10 ">
+                <label>Convalida</label><br>
+                <div class="btn-group btn-group-justified">{$btn_co}</div>
             </div>
-            <div class="well margin-top-10">
+            <div class="margin-top-10">
                 <label>AIUTI</label><br>
                 <div class="btn-group btn-group-justified">
                     <a class="btn btn-default btn-md">REFERENTI<br>EXTRA</a>
                     <a class="btn btn-default btn-md">AIUTI</a>
-                    <a class="btn btn-default btn-md">CAMBIA<br>REFERENTE</a>
                 </div>
             </div>
 SEMPLICE;
@@ -305,20 +305,21 @@ $wg_edit_operazioni->header = array(
 );
 
 $c =<<<SEMPLICE
-<form>
+<form class="padding-10">
 
     <fieldset>
-        <section class="margin-top-10 well well-sm">
+        <section class="margin-top-10">
             <label for="costo_gestione">Costo gestione</label><br>
             <i class="fa fa-euro fa-2x"></i><i class="fa fa-pencil fa-2x pull-right"></i>&nbsp;&nbsp;<a class="font-xl costi" id="costo_gestione" data-type="text"   data-pk="{$rowo["id_ordini"]}" data-original-title="Costo gestione:">{$rowo["costo_gestione"]}</a>
         </section>
 
-        <section class="margin-top-10 well well-sm">
+        <section class="margin-top-10">
             <label for="costo_trasporto" >Costo trasporto</label><br>
             <i class="fa fa-euro fa-2x"></i><i class="fa fa-pencil fa-2x pull-right"></i>&nbsp;&nbsp;<a class="font-xl costi" id="costo_trasporto" data-type="text"   data-pk="{$rowo["id_ordini"]}" data-original-title="Costo trasporto:">{$rowo["costo_trasporto"]}</a>
         </section>
     </fieldset>
 </form>
+<div class="alert alert-danger margin-top-10"><b>NB: </b> i costi di gestione e spedizione sono gestiti in maniera diversa rispetto alle altre versioni. Si consiglia di leggere almeno una volta l'help.</div>
 SEMPLICE;
 
 
@@ -329,17 +330,48 @@ $options = array(   "editbutton" => false,
                     "colorbutton"=>true);
 $wg_edit_costi = $ui->create_widget($options);
 $wg_edit_costi->id = "wg_edit_costi";
-$wg_edit_costi->body = array("content" => $c,"class" => "");
+$wg_edit_costi->body = array("content" => $c,"class" => "no-padding");
 $wg_edit_costi->header = array(
     "title" => '<h2>Costi generali</h2>',
     "icon" => 'fa fa-euro'
 );
 
+$apertura = strtotime($row["data_apertura"]);
+$chiusura = strtotime($row["data_chiusura"]);
+$today = strtotime(date("Y-m-d H:i"));
+if($apertura>$today){$color="text-info";}
+if($chiusura>$today AND $apertura<$today){$color="text-success";}
+if($chiusura<$today){$color="text-danger";}
+if($row["is_printable"]>0){$color="text-muted";}
 
+if($row["id_utente"]==_USER_ID){
+    $gestore = "Gestore";
+}else{
+    $gestore = "";
+    $stmt = $db->prepare("select * from retegas_referenze where id_utente_referenze='"._USER_ID."' AND id_gas_referenze='"._USER_ID_GAS."' AND id_ordine_referenze=:id_ordine");
+    $stmt->bindParam(':id_ordine', $row["id_ordini"] , PDO::PARAM_INT);
+    $stmt->execute();
+    if($stmt->rowCount()>0){
+        $gestoreGAS ="Gestore GAS";
+    }else{
+        $gestoreGAS ="";
+        if(_USER_PERMISSIONS & perm::puo_vedere_tutti_ordini){
+            $supervisore = "Supervisore";
+        }
+
+    }
+}
 ?>
+<?php echo navbar_ordine($id_ordine); ?>
 
-<div class="inbox-nav-bar no-content-padding">
-    <h1 class="page-title txt-color-blueDark"><i class="fa fa-fw fa-cogs"></i> <?php echo "#".$id_ordine." <small>".$rowo["descrizione_ordini"]."</small>"?>&nbsp;</h1>
+<div class="row margin-top-10">
+    <div class="col-md-4">
+        <?php echo $pagina_rettifiche; ?>
+    </div>
+    <div class="col-md-4">
+    </div>
+    <div class="col-md-4">
+    </div>
 </div>
 
 <section id="widget-grid" class="margin-top-10">
@@ -351,7 +383,11 @@ $wg_edit_costi->header = array(
         <article class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
             <?php if($rowo["is_printable"]<>1){echo $wg_edit_ordine->print_html();}?>
             <?php if($rowo["is_printable"]<>1){echo $wg_edit_scadenze->print_html();} ?>
-            <?php if($rowo["is_printable"]<>1){echo $wg_edit_partecipazione->print_html();} ?>
+            <?php if($rowo["is_printable"]<>1){
+                        if(_USER_GAS_PUO_COND_ORD_EST){
+                            echo $wg_edit_partecipazione->print_html();
+                        }
+                    } ?>
         </article>
         <article class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
 

@@ -1,7 +1,334 @@
 <?php
 require_once("inc/init.php");
+$converter = new Encryption;
 
 switch ($_POST["act"]) {
+    /*
+    /* -------------------------PERMESSi SUPERPOTERI
+    */
+
+    case "save_pwd_user":
+
+    $old_password = clean($_POST["acc_oldpwd"]);
+    $new_password = clean($_POST["acc_newpwd"]);
+    $new_password2 = clean($_POST["acc_newpwd2"]);
+
+    if($old_password=="" ||
+       $new_password=="" ||
+       $new_password2=="" ){
+        $res=array("result"=>"KO", "msg"=>"Uno dei campi è vuoto" );
+        echo json_encode($res);
+        die();
+        break;
+    }
+
+    if($new_password<>$new_password2){
+        $res=array("result"=>"KO", "msg"=>"Le due password non coincidono" );
+        echo json_encode($res);
+        die();
+        break;
+    }
+
+    $md5password = md5($new_password);
+
+    $stmt = $db->prepare("UPDATE maaking_users SET password = :password
+                         WHERE userid='"._USER_ID."' AND password=:old_password");
+    $stmt->bindParam(':password', $md5password, PDO::PARAM_STR);
+    $stmt->bindParam(':old_password', md5($old_password), PDO::PARAM_STR);
+    $stmt->execute();
+    if($stmt->rowCount()==1){
+        $res=array("result"=>"OK", "msg"=>"Password aggiornata. E' necessario fare un nuovo login per applicare la modifica." );
+        echo json_encode($res);
+        die();
+    }else{
+        $res=array("result"=>"OK", "msg"=>"La vecchia password non è stata riconosciuta" );
+        echo json_encode($res);
+        die();
+    }
+    break;
+
+    case "save_acc_user":
+    $username = clean($_POST["username"]);
+    if($username==""){
+        $res=array("result"=>"KO", "msg"=>"Username vuoto" );
+        echo json_encode($res);
+        die();
+        break;
+    }
+    //username esistente
+    $stmt = $db->prepare("SELECT * from maaking_users WHERE username=:username;");
+    $stmt->bindParam(':username', $username, PDO::PARAM_STR);
+    $stmt->bindParam(':email', $email, PDO::PARAM_STR);
+    $stmt->execute();
+    if($stmt->rowCount()>1){
+        $res=array("result"=>"KO", "msg"=>"Username già usata" );
+        echo json_encode($res);
+        die();
+        break;
+
+    }
+
+    $stmt = $db->prepare("UPDATE maaking_users SET username = :username
+                         WHERE userid='"._USER_ID."'");
+    $stmt->bindParam(':username', $username, PDO::PARAM_STR);
+    $stmt->execute();
+
+    $res=array("result"=>"OK", "msg"=>"Nome utente aggiornato. E' necessario fare un nuovo login per applicare la modifica." );
+    echo json_encode($res);
+    die();
+    break;
+
+
+    break;
+
+    case "abilitazioni":
+
+    $tipo = CAST_TO_INT($_POST['tipo']);
+    $v = CAST_TO_INT($_POST['value']);
+    $userid = CAST_TO_INT($converter->decode($_POST['id']),0);
+    if($userid==0){
+        $res= array("result"=>"KO", "msg"=>"KO"); echo json_encode($res);die();
+    }
+    $stmt = $db->prepare("SELECT id_gas, user_permission FROM  maaking_users WHERE userid = :userid LIMIT 1;");
+    $stmt->bindParam(':userid', $userid, PDO::PARAM_INT);
+    $stmt->execute();
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    $act_perm = $row["user_permission"];
+
+    $bitwise=false;
+    $gestionali=false;
+
+    switch ($tipo) {
+        case perm::puo_eliminare_messaggi:
+            if($v>0){
+                $new_perm = $act_perm |  perm::puo_eliminare_messaggi;
+                $r = "Moderare i feedback: PERMESSO";
+            }else{
+                $new_perm = $act_perm &  (~perm::puo_eliminare_messaggi);
+                $r = "Moderare i feedback: NEGATO";
+            }
+            $bitwise=true;
+            $gestionali = true;
+            break;
+        case perm::puo_gestire_la_cassa:
+            if($v>0){
+                $new_perm = $act_perm |  perm::puo_gestire_la_cassa;
+                $r = "Fare il cassiere: PERMESSO";
+            }else{
+                $new_perm = $act_perm &  (~perm::puo_gestire_la_cassa);
+                $r = "Fare il cassiere: NEGATO";
+            }
+            $bitwise=true;
+            $gestionali = true;
+            break;
+        case perm::puo_gestire_utenti:
+            if($v>0){
+                $new_perm = $act_perm |  perm::puo_mod_perm_user_gas;
+                $new_perm = $new_perm |  perm::puo_gestire_utenti;
+                $r = "Gestire gli utenti: PERMESSO";
+            }else{
+                $new_perm = $act_perm &  (~perm::puo_mod_perm_user_gas);
+                $new_perm = $new_perm &  (~perm::puo_gestire_utenti);
+                $r = "Gestire gli utenti: NEGATO";
+            }
+            $gestionali = true;
+            $bitwise=true;
+            break;
+        case perm::puo_vedere_tutti_ordini:
+            if($v>0){
+                $new_perm = $act_perm |  perm::puo_vedere_tutti_ordini;
+                $r = "Supervisionare gli ordini: PERMESSO";
+            }else{
+                $new_perm = $act_perm &  (~perm::puo_vedere_tutti_ordini);
+                $r = "Supervisionare gli ordini: NEGATO";
+            }
+            $gestionali = true;
+            $bitwise=true;
+            break;
+        case perm::puo_creare_gas:
+            if($v>0){
+                $new_perm = $act_perm |  perm::puo_creare_gas;
+                $r = "Gestire il gas: PERMESSO";
+            }else{
+                $new_perm = $act_perm &  (~perm::puo_creare_gas);
+                $r = "Gestire il gas: NEGATO";
+            }
+            $gestionali = true;
+            $bitwise=true;
+            break;
+        case perm::puo_vedere_retegas:
+            if($v>0){
+                if(_USER_PERMISSIONS & perm::puo_gestire_retegas){
+                    $new_perm = $act_perm |  perm::puo_vedere_retegas;
+                    $r = "Gestire il gas: PERMESSO";
+                }
+            }else{
+                $new_perm = $act_perm &  (~perm::puo_vedere_retegas);
+                $r = "Gestire il gas: NEGATO";
+            }
+            $gestionali = true;
+            $bitwise=true;
+            break;
+        case perm::puo_avere_amici:
+            if($v>0){
+                $new_perm = $act_perm |  perm::puo_avere_amici;
+                $r = "Gestire la rubrica amici: PERMESSO";
+            }else{
+                $new_perm = $act_perm &  (~perm::puo_avere_amici);
+                $r = "Gestire la rubrica amici: NEGATO";
+            }
+            $gestionali = false;
+            $bitwise=true;
+            break;
+        case perm::puo_creare_ditte:
+            if($v>0){
+                $new_perm = $act_perm |  perm::puo_creare_ditte;
+                $new_perm = $new_perm |  perm::puo_creare_listini;
+                $r = "Creare e gestire i fornitori: PERMESSO";
+            }else{
+                $new_perm = $act_perm &  (~perm::puo_creare_ditte);
+                $new_perm = $new_perm &  (~perm::puo_creare_listini);
+                $r = "Creare e gestire i fornitori: NEGATO";
+            }
+            $gestionali = false;
+            $bitwise=true;
+            break;
+        case perm::puo_creare_ordini:
+            if($v>0){
+                $new_perm = $act_perm |  perm::puo_creare_ordini;
+                $r = "Creare e gestire gli ordini: PERMESSO";
+            }else{
+                $new_perm = $act_perm &  (~perm::puo_creare_ordini);
+                $r = "Creare e gestire gli ordini: NEGATO";
+            }
+            $gestionali = false;
+            $bitwise=true;
+            break;
+        case perm::puo_partecipare_ordini:
+            if($v>0){
+                $new_perm = $act_perm |  perm::puo_partecipare_ordini;
+                $r = "Partecipare agli ordini: PERMESSO";
+            }else{
+                $new_perm = $act_perm &  (~perm::puo_partecipare_ordini);
+                $r = "Partecipare agli ordini: NEGATO";
+            }
+            $gestionali = false;
+            $bitwise=true;
+            break;
+        case perm::puo_postare_messaggi:
+            if($v>0){
+                $new_perm = $act_perm |  perm::puo_postare_messaggi;
+                $r = "Postare i messaggi: PERMESSO";
+            }else{
+                $new_perm = $act_perm &  (~perm::puo_postare_messaggi);
+                $r = "Postare i messaggi: NEGATO";
+            }
+            $gestionali = false;
+            $bitwise=true;
+            break;
+        case perm::puo_operare_con_crediti:
+            if($v>0){
+                $new_perm = $act_perm |  perm::puo_operare_con_crediti;
+                $r = "Operare con crediti altrui: PERMESSO";
+            }else{
+                $new_perm = $act_perm &  (~perm::puo_operare_con_crediti);
+                $r = "Operare con crediti altrui: NEGATO";
+            }
+            $gestionali = false;
+            $bitwise=true;
+            break;
+        case "gestire_help":
+            if(_USER_PERMISSIONS & perm::puo_gestire_retegas){
+                $stmt = $db->prepare("DELETE FROM retegas_options WHERE id_user=:userid AND chiave='_USER_PUO_MODIFICARE_HELP' LIMIT 1;");
+                $stmt->bindParam(':userid', $userid, PDO::PARAM_INT);
+                $stmt->execute();
+                $r = "Modificare gli help : NEGATO;";
+                if($v>0){
+                    $stmt = $db->prepare("INSERT INTO retegas_options (id_user,chiave,valore_text) VALUES (:userid,'_USER_PUO_MODIFICARE_HELP','SI');");
+                    $stmt->bindParam(':userid', $userid, PDO::PARAM_INT);
+                    $stmt->execute();
+                    $r = "Modificare gli help : PERMESSO;";
+                }
+                $res=array("result"=>"OK", "msg"=>$r );
+            }else{
+               $r = "Non hai i permessi necessari";
+               $res= array("result"=>"KO", "msg"=>$r);
+            }
+
+            echo json_encode($res);
+            die();
+            break;
+        default:
+            $new_perm=0;
+            break;
+
+    }
+
+    $res=array("result"=>"KO", "msg"=>"Errore generico..." );
+    if($bitwise){
+        if($gestionali){
+            $stmt = $db->prepare("SELECT id_referente_gas FROM  retegas_gas WHERE id_gas = :id_gas LIMIT 1;");
+            $stmt->bindParam(':id_gas', $row["id_gas"], PDO::PARAM_INT);
+            $stmt->execute();
+            $g = $stmt->fetch(PDO::FETCH_ASSOC);
+            if(($g["id_referente_gas"]==_USER_ID) OR (_USER_PERMISSIONS & perm::puo_gestire_retegas)){
+                if($g["id_referente_gas"]==_USER_ID){$chi="Sei un Referente GAS:<br>";}
+                if(_USER_PERMISSIONS & perm::puo_vedere_retegas){$chi.="Sei un admin:<br>";}
+                $stmt = $db->prepare("UPDATE maaking_users SET user_permission= :new_perm WHERE userid = :userid LIMIT 1;");
+                $stmt->bindParam(':userid', $userid, PDO::PARAM_INT);
+                $stmt->bindParam(':new_perm', $new_perm, PDO::PARAM_INT);
+                $stmt->execute();
+                $res=array("result"=>"OK", "msg"=>$chi.$r );
+            }else{
+                $res=array("result"=>"KO", "msg"=>"Non hai i permessi necessari" );
+            }
+        }else{
+            if(((_USER_PERMISSIONS & perm::puo_gestire_utenti) AND ($row["id_gas"]==_USER_ID_GAS)) OR (_USER_PERMISSIONS & perm::puo_gestire_retegas)){
+                if((_USER_PERMISSIONS & perm::puo_gestire_utenti) AND ($row["id_gas"]==_USER_ID_GAS)){$chi="Sei un Gestore Utenti :<br>";}
+                if(_USER_PERMISSIONS & perm::puo_gestire_retegas){$chi.="Sei un admin:<br>";}
+                $stmt = $db->prepare("UPDATE maaking_users SET user_permission= :new_perm WHERE userid = :userid LIMIT 1;");
+                $stmt->bindParam(':userid', $userid, PDO::PARAM_INT);
+                $stmt->bindParam(':new_perm', $new_perm, PDO::PARAM_INT);
+                $stmt->execute();
+                $res=array("result"=>"OK", "msg"=>$chi.$r );
+            }else{
+                $res=array("result"=>"KO", "msg"=>"Non hai i permessi necessari" );
+            }
+        }
+    }
+
+
+
+    echo json_encode($res);
+
+    break;
+    //-------------------------------------------------------------------------------------
+
+     /*
+    /* -------------------------AVVISIAPERTURE
+    */
+    case "avvisi_aperture":
+    $stmt = $db->prepare("SELECT COUNT(*) from retegas_options WHERE id_user='"._USER_ID."' AND chiave='_V4_AVVISIAPERTURE'");
+    $stmt->execute();
+    if ($stmt->fetchColumn()){
+        //esiste
+        $stmt = $db->prepare("UPDATE retegas_options SET valore_text = :value
+        WHERE id_user='"._USER_ID."' AND chiave='_V4_AVVISIAPERTURE'");
+
+    }else{
+        //non esiste
+        $stmt = $db->prepare("INSERT INTO retegas_options (id_user,chiave,valore_text)
+        VALUES ("._USER_ID.",'_V4_AVVISIAPERTURE',:value)");
+
+    }
+    $stmt->bindParam(':value', $_POST['value'], PDO::PARAM_STR);
+    $stmt->execute();
+
+    $res=array("result"=>"OK", "msg"=>"Avvisi aperture : <b>".$_POST['value']."</b>" );
+    echo json_encode($res);
+
+    break;
+    //-------------------------------------------------------------------------------------
 
     /*
     /* -------------------------PERMETTI MODIFICA ORDINI
@@ -50,6 +377,48 @@ switch ($_POST["act"]) {
     $stmt->execute();
 
     $res=array("result"=>"OK", "msg"=>"Usa la cassa : <b>".$_POST['value']."</b>" );
+    echo json_encode($res);
+
+    break;
+    //-------------------------------------------------------------------------------------
+
+    /*
+    /* -------------------------USER ELIMINA HELP
+    */
+    case "user_elimina_help":
+
+    $stmt = $db->prepare("INSERT INTO retegas_options (
+                            id_user,
+                            chiave,
+                            valore_int,
+                            valore_text)
+                            VALUES (
+                            "._USER_ID.",
+                            '_HELP_V4_HIDE',
+                            1,
+                            :value)");
+    $stmt->bindParam(':value', $_POST['value'], PDO::PARAM_STR);
+    $stmt->execute();
+
+    $msg="Help nascosto. Potrai riattivarlo dalla pagina delle impostazioni oppure vederlo separatamente nella sezione ''AIUTO'' ";
+    $res=array("result"=>"OK", "msg"=>$msg );
+    echo json_encode($res);
+
+    break;
+    //-------------------------------------------------------------------------------------
+    /*
+    /* -------------------------USER RIPRISTINA HELP
+    */
+    case "ripristina_help":
+
+    $stmt = $db->prepare("DELETE FROM retegas_options
+                            WHERE
+                            id_user = '"._USER_ID."' AND
+                            chiave = '_HELP_V4_HIDE';");
+    $stmt->execute();
+
+    $msg="Aiuti ripristinati. Ricarica la pagina per rivederli.";
+    $res=array("result"=>"OK", "msg"=>$msg );
     echo json_encode($res);
 
     break;

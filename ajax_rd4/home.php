@@ -7,7 +7,7 @@ $page_title = "Cruscotto";
 $h=file_get_contents("help/home.html");
 $options = array(   "editbutton" => false,
                     "fullscreenbutton"=>false,
-                    "deletebutton"=>true,
+                    "deletebutton"=>false,
                     "colorbutton"=>false);
 $wg_help = $ui->create_widget($options);
 $wg_help->id = "wg_help_home";
@@ -111,7 +111,7 @@ $no++;
 
 $oa .=' <li>
         <span class="">
-            <a href="javascript:void(0);" class="msg">
+            <a href="#ajax_rd4/ordini/ordine.php?id='.$row["id_ordini"].'" class="msg">
                 <img src="img_rd4/t_'.$row["id_tipologie"].'_240.png" alt="" class="air air-top-left margin-top-5" width="40" height="40">
                 <span class="from">'.$row["descrizione_ordini"].' <i class="icon-paperclip">'.$color.'</i></span>
                 <time>'.$dd .'<b>'.$hours.'</b> h.</time>
@@ -155,7 +155,8 @@ $stmt = $db->prepare("SELECT retegas_ordini.id_ordini,
             retegas_ordini.id_utente,
             retegas_ordini.id_listini,
             retegas_ditte.id_ditte,
-            retegas_ordini.data_apertura
+            retegas_ordini.data_apertura,
+            retegas_ordini.is_printable
             FROM (((((retegas_ordini
             INNER JOIN retegas_referenze ON retegas_ordini.id_ordini = retegas_referenze.id_ordine_referenze) LEFT JOIN maaking_users ON retegas_referenze.id_utente_referenze = maaking_users.userid) INNER JOIN retegas_listini ON retegas_ordini.id_listini = retegas_listini.id_listini) INNER JOIN retegas_ditte ON retegas_listini.id_ditte = retegas_ditte.id_ditte) INNER JOIN maaking_users AS maaking_users_1 ON retegas_ordini.id_utente = maaking_users_1.userid) INNER JOIN retegas_gas ON maaking_users_1.id_gas = retegas_gas.id_gas
             WHERE ((retegas_referenze.id_gas_referenze)= :id_gas)
@@ -166,47 +167,50 @@ $stmt = $db->prepare("SELECT retegas_ordini.id_ordini,
             $stmt->execute();
             $rows = $stmt->fetchAll();
 
-        $r = '  <div class="pager">
-                    <img src="js_rd4/plugin/tablesorter/addons/pager/icons/first.png" class="first" alt="First" />
-                    <img src="js_rd4/plugin/tablesorter/addons/pager/icons/prev.png" class="prev" alt="Prev" />
-                    <span class="pagedisplay"></span> <!-- this can be any element, including an input -->
-                    <img src="js_rd4/plugin/tablesorter/addons/pager/icons/next.png" class="next" alt="Next" />
-                    <img src="js_rd4/plugin/tablesorter/addons/pager/icons/last.png" class="last" alt="Last" />
-                    <select class="pagesize" title="Select page size">
-                        <option value="10">10</option>
-                        <option value="20">20</option>
-                        <option value="30">30</option>
-                        <option value="40">40</option>
-                    </select>
-                    <select class="gotoPage" title="Select page number"></select>
+        $r = '  <div>
+                <div class="panel">
+                <form class="smart-form">
+                    <label class="input"> <i class="icon-append fa fa-filter"></i>
+                                        <input type="text" placeholder="filtra tra gli ordini..." id="listfilter">
+                                    </label>
+                </form>
                 </div>
-
-                <table id="ordini_io_coinvolto">
-                <thead>
-                    <tr>
-                        <th style="width:20%">#</th>
-                        <th>Ordine</th>
-
-                    </tr>
-                </thead>
-
-        <tbody>';
+                <ul id="list" style="height:400px;overflow-y:auto" class="list-unstyled">';
         foreach($rows as $row){
 
+                $gestore = "";
+                $gestoreGAS = "";
+                $supervisore = "";
+                $partecipante ="";
+
+                $stmt = $db->prepare("select * from retegas_dettaglio_ordini where id_utenti='"._USER_ID."' AND id_ordine=:id_ordine");
+                $stmt->bindParam(':id_ordine', $row["id_ordini"] , PDO::PARAM_INT);
+                $stmt->execute();
+                if($stmt->rowCount()>0){
+                    $partecipante ="Partecipante";
+                }
+
+                $apertura = strtotime($row["data_apertura"]);
+                $chiusura = strtotime($row["data_chiusura"]);
+                $today = strtotime(date("Y-m-d H:i"));
+                if($apertura>$today){$color="text-info";}
+                if($chiusura>$today AND $apertura<$today){$color="text-success";}
+                if($chiusura<$today){$color="text-danger";}
+                if($row["is_printable"]>0){$color="text-muted";}
+
                 if($row["id_utente"]==_USER_ID){
-                    $stato = "G.O.";
-
-
+                    $gestore = "Gestore";
                 }else{
+                    $gestore = "";
                     $stmt = $db->prepare("select * from retegas_referenze where id_utente_referenze='"._USER_ID."' AND id_gas_referenze='"._USER_ID_GAS."' AND id_ordine_referenze=:id_ordine");
                     $stmt->bindParam(':id_ordine', $row["id_ordini"] , PDO::PARAM_INT);
                     $stmt->execute();
                     if($stmt->rowCount()>0){
-                        $stato ="G.G.";
+                        $gestoreGAS ="Gestore GAS";
                     }else{
-                        $stato ="";
+                        $gestoreGAS ="";
                         if(_USER_PERMISSIONS & perm::puo_vedere_tutti_ordini){
-                            $stato = "G.T.";
+                            $supervisore = "Supervisore";
                         }
 
                     }
@@ -214,31 +218,18 @@ $stmt = $db->prepare("SELECT retegas_ordini.id_ordini,
 
 
 
-                $r .= '<tr>
-                    <td>'.$row["id_ordini"].'</td>
-                    <td><a href="#ajax_rd4/ordini/edit.php?id='.$row["id_ordini"].'">'.$row["descrizione_ordini"].'</a><br>
-                    <span class="note">'.$stato.'</span>
+                $r .= '<li>
+                    <i class="fa fa-circle '.$color.'"></i>
+                    <span>
+                    #'.$row["id_ordini"].' <a href="#ajax_rd4/ordini/edit.php?id='.$row["id_ordini"].'">'.$row["descrizione_ordini"].'</a><br>
+                    <i class="note">'.$gestore.' '.$partecipante.' '.$gestoreGAS.' '.$supervisore.'</i></span>
 
-                    </td>
 
-                 </tr>';
+                 </li>';
 
         }
-        $r .= '</tbody></table>
-            <div class="pager">
-                    <img src="js_rd4/plugin/tablesorter/addons/pager/icons/first.png" class="first" alt="First" />
-                    <img src="js_rd4/plugin/tablesorter/addons/pager/icons/prev.png" class="prev" alt="Prev" />
-                    <span class="pagedisplay"></span> <!-- this can be any element, including an input -->
-                    <img src="js_rd4/plugin/tablesorter/addons/pager/icons/next.png" class="next" alt="Next" />
-                    <img src="js_rd4/plugin/tablesorter/addons/pager/icons/last.png" class="last" alt="Last" />
-                    <select class="pagesize" title="Select page size">
-                        <option value="10">10</option>
-                        <option value="20">20</option>
-                        <option value="30">30</option>
-                        <option value="40">40</option>
-                    </select>
-                    <select class="gotoPage" title="Select page number"></select>
-                </div>';
+        $r.="</ul>";
+
 
 $options = array(   "editbutton" => false,
                     "fullscreenbutton"=>false,
@@ -246,7 +237,7 @@ $options = array(   "editbutton" => false,
                     "colorbutton"=>true);
 $wg_oco = $ui->create_widget($options);
 $wg_oco->id = "wg_ordini_coinvolto_home";
-$wg_oco->body = array("content" => $r,"class" => "no-padding");
+$wg_oco->body = array("content" => $r,"class" => "");
 $wg_oco->header = array(
     "title" => '<h2>Ordini che mi coinvolgono</h2>',
     "icon" => 'fa fa-heart'
@@ -266,7 +257,7 @@ $wg_oco->header = array(
             <?php echo $wg_oco->print_html(); ?>
         </article>
         <article class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
-            <?php echo $wg_cassa->print_html(); ?>
+            <?php if(_USER_USA_CASSA){ echo $wg_cassa->print_html();} ?>
             <?php echo $wg_oa->print_html(); ?>
         </article>
 
@@ -298,7 +289,32 @@ $wg_oco->header = array(
 
                     });
         });
+         jQuery.expr[':'].Contains = function(a,i,m){
+              return (a.textContent || a.innerText || "").toUpperCase().indexOf(m[3].toUpperCase())>=0;
+          };
+        function listFilter(list) { // header is any element, list is an unordered list
+            // create and add the filter form to the header
 
+            $('#listfilter')
+              .change( function () {
+                var filter = $(this).val();
+                if(filter) {
+                  // this finds all links in a list that contain the input,
+                  // and hide the ones not containing the input while showing the ones that do
+                  $(list).find("span:not(:Contains(" + filter + "))").parent().hide();
+                  $(list).find("span:Contains(" + filter + ")").parent().show();
+                } else {
+                  $(list).find("li").show();
+                }
+                return false;
+              })
+            .keyup( function () {
+                // fire the above change event after every letter
+                $(this).change();
+            });
+          }
+
+        /*
         // clears memory even if nothing is in the function
         $.extend($.tablesorter.themes.bootstrap, {
             // these classes are added to the table. To see other table classes available,
@@ -382,27 +398,17 @@ $wg_oco->header = array(
 
     };
 
-        $('#ordini_io_coinvolto').tablesorter({
-            theme: 'bootstrap',
-            widgets: ["uitheme","filter","zebra"]
-        }).tablesorterPager(pagerOptions);
-
+        //$('#ordini_io_coinvolto').tablesorter({
+        //    theme: 'bootstrap',
+        //    widgets: ["uitheme","filter","zebra"]
+       // }).tablesorterPager(pagerOptions);
+     */
+     listFilter( $("#list"));
     };
 
     // end pagefunction
 
-    // run pagefunction on load
 
-    var loadTablesorter = function(){
-        loadScript("js_rd4/plugin/tablesorter/js/jquery.tablesorter.min.js",loadWidgets);
-    }
-    var loadWidgets = function(){
-        loadScript("js_rd4/plugin/tablesorter/js/jquery.tablesorter.widgets.min.js",loadPager)
-    }
-    var loadPager = function(){
-        loadScript("js_rd4/plugin/tablesorter/addons/pager/jquery.tablesorter.pager.min.js",pagefunction)
-    }
-
-    loadTablesorter();
+    pagefunction();
 
 </script>

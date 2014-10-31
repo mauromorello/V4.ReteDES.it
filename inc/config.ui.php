@@ -65,7 +65,12 @@ $gas_menu = array(
     "sub" => array(
                             "gas_home" => array(
                                 'title' => 'Scheda',
-                                "url" => "ajax_rd4/gas/gas_home.php")
+                                "url" => "ajax_rd4/gas/gas_home.php"),
+
+
+                            "gas_utenti" => array(
+                                'title' => 'Utenti',
+                                "url" => "ajax_rd4/gas/gas_utenti.php")
                     )
 );
 
@@ -81,13 +86,16 @@ $help_menu =  array(
                                 'icon' => 'fa-smile-o',
                                 "url" => "ajax_rd4/help/help_inizio.php"),
 
+                            "help_ordini" => array(
+                                'title' => 'Ordini',
+                                "url" => "ajax_rd4/help/help_ordini.php"),
 
-                            "help_utente" => array(
-                                'title' => 'Utente',
-                                "url" => "ajax_rd4/help/help_utente.php"),
+                            "help_listini" => array(
+                                'title' => 'Listini',
+                                "url" => "ajax_rd4/help/help_listini.php"),
 
                             "help_gas" => array(
-                                'title' => 'GAS',
+                                'title' => 'GAS & Utenti',
                                 "url" => "ajax_rd4/help/help_gas.php"),
 
                             "help_sviluppo" => array(

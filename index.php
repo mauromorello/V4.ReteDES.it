@@ -9,6 +9,8 @@ require_once("inc/config.ui.php");
 /*---------------- PHP Custom Scripts ---------
 
 YOU CAN SET CONFIGURATION VARIABLES HERE BEFORE IT GOES TO NAV, RIBBON, ETC. */
+if(_USER_INSIDECONTAINER){$page_body_prop["class"]="container";}
+
 
 
 
@@ -18,6 +20,7 @@ YOU CAN SET CONFIGURATION VARIABLES HERE BEFORE IT GOES TO NAV, RIBBON, ETC. */
 //you can add your custom css in $page_css array.
 //Note: all css files are inside css/ folder
 $page_css[] = "your_style.css";
+//$page_css[] = "ui.jqgrid.css";
 include("inc/header.php");
 
 //include left panel (navigation)
@@ -31,13 +34,12 @@ include("inc/nav.php");
 	<?php
 		include("inc/ribbon.php");
 	?>
-
 	<!-- MAIN CONTENT -->
 	<div id="content">
 
 	</div>
 	<!-- END MAIN CONTENT -->
-	
+
 </div>
 <!-- END MAIN PANEL -->
 
@@ -49,9 +51,9 @@ include("inc/nav.php");
 
 <!-- ==========================CONTENT ENDS HERE ========================== -->
 
-<?php 
+<?php
 	//include required scripts
-	include("inc/scripts.php"); 
+	include("inc/scripts.php");
 	//include footer
-	include("inc/google-analytics.php"); 
+	include("inc/google-analytics.php");
 ?>

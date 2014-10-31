@@ -47,7 +47,16 @@ function CAST_TO_OBJECT($var){
                 ? (object)$var
                 : is_array($var) ? (object)$var : (object)NULL;
 }
-
+function random_string($length = 32, $chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890'){
+    $chars_length = (strlen($chars) - 1);
+    $string = $chars{rand(0, $chars_length)};
+    for ($i = 1; $i < $length; $i = strlen($string))
+    {
+        $r = $chars{rand(0, $chars_length)};
+        if ($r != $string{$i - 1}) $string .=  $r;
+    }
+    return $string;
+}
 class sec {
     var $secVersion = '1.0';
     var $to = '';
@@ -236,4 +245,88 @@ class Template {
 
             return $output;
         }
+    }
+
+    function clean($string){
+        return htmlentities(trim(strip_tags($string)),ENT_NOQUOTES,'UTF-8');
+    }
+
+
+
+    //FUNCTION PER ORDINI
+    function VA_ORDINE($id_ordine){
+        global $db;
+        $stmt = $db->prepare("SELECT SUM(qta_arr * prz_dett_arr) as totale FROM retegas_dettaglio_ordini WHERE id_ordine=:id_ordine ");
+        $stmt->bindParam(':id_ordine', $id_ordine, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        //$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        //foreach ($rows as $row) {}
+        return round($row[totale],4);
+
+    }
+    function VA_ORDINE_ESCLUDI_RETT($id_ordine){
+        global $db;
+        $stmt = $db->prepare("SELECT SUM(qta_arr * prz_dett_arr) as totale FROM retegas_dettaglio_ordini WHERE id_ordine=:id_ordine AND LEFT(art_codice,2) <> '@@'");
+        $stmt->bindParam(':id_ordine', $id_ordine, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        //$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        //foreach ($rows as $row) {}
+        return round($row[totale],4);
+
+    }
+    function VA_ORDINE_SOLO_RETT($id_ordine){
+        global $db;
+        $stmt = $db->prepare("SELECT SUM(qta_arr * prz_dett_arr) as totale FROM retegas_dettaglio_ordini WHERE id_ordine=:id_ordine AND LEFT(art_codice,2) = '@@'");
+        $stmt->bindParam(':id_ordine', $id_ordine, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        //$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        //foreach ($rows as $row) {}
+        return round($row[totale],4);
+
+    }
+
+    function VA_ORDINE_GAS($id_ordine,$id_gas){
+        global $db;
+        $stmt = $db->prepare("SELECT SUM(D.qta_arr * D.prz_dett_arr) as totale FROM retegas_dettaglio_ordini D inner join maaking_users U on U.userid=D.id_utenti WHERE D.id_ordine=:id_ordine AND U.id_gas=:id_gas");
+        $stmt->bindParam(':id_ordine', $id_ordine, PDO::PARAM_INT);
+        $stmt->bindParam(':id_gas', $id_gas, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return round($row[totale],4);
+    }
+    function VA_ORDINE_GAS_ESCLUDI_RETT($id_ordine,$id_gas){
+        global $db;
+        $stmt = $db->prepare("SELECT SUM(D.qta_arr * D.prz_dett_arr) as totale FROM retegas_dettaglio_ordini D inner join maaking_users U on U.userid=D.id_utenti WHERE D.id_ordine=:id_ordine AND U.id_gas=:id_gas AND LEFT(D.art_codice,2) <> '@@'");
+        $stmt->bindParam(':id_ordine', $id_ordine, PDO::PARAM_INT);
+        $stmt->bindParam(':id_gas', $id_gas, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return round($row[totale],4);
+    }
+    function VA_ORDINE_USER($id_ordine,$id_user){
+        global $db;
+        $stmt = $db->prepare("SELECT SUM(qta_arr * prz_dett_arr) as totale FROM retegas_dettaglio_ordini WHERE id_ordine=:id_ordine AND id_utenti=:id_user ");
+        $stmt->bindParam(':id_ordine', $id_ordine, PDO::PARAM_INT);
+        $stmt->bindParam(':id_user', $id_user, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        //$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        //foreach ($rows as $row) {}
+        return round($row[totale],4);
+
+    }
+    function VA_ORDINE_USER_ESCLUDI_RETT($id_ordine,$id_user){
+        global $db;
+        $stmt = $db->prepare("SELECT SUM(qta_arr * prz_dett_arr) as totale FROM retegas_dettaglio_ordini WHERE id_ordine=:id_ordine AND id_utenti=:id_user AND LEFT(art_codice,2) <> '@@' ");
+        $stmt->bindParam(':id_ordine', $id_ordine, PDO::PARAM_INT);
+        $stmt->bindParam(':id_user', $id_user, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        //$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        //foreach ($rows as $row) {}
+        return round($row[totale],4);
+
     }

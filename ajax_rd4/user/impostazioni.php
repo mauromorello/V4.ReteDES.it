@@ -52,7 +52,37 @@ $i='<form action="" class="smart-form">
                                         </label>
                                         <hr>
                                         '.$gas_usa_cassa.'
-                                    <label class="label margin-top-10">Avvisi alle chiusure degli ordini</label>
+
+                                </section>
+
+</form>';
+
+$wg_impostazioni = $ui->create_widget($options);
+$wg_impostazioni->id = "wg_impostazioni";
+$wg_impostazioni->body = array("content" => $i);
+$wg_impostazioni->header = array(
+    "title" => '<h2>Sito</h2>',
+    "icon" => 'fa fa-laptop'
+);
+
+if(_USER_AVVISIAPERTURE){
+    $avvisi_aperture = ' checked = "CHECKED" ';
+}else{
+    $avvisi_aperture = '';
+}
+
+$avv='<form action="" class="smart-form">
+                            <section>
+                                    <label class="toggle margin-top-10">
+                                            <input id="cb_avvisi_aperture" type="checkbox" name="avvisi_aperture" '.$avvisi_aperture.'>
+                                            <i data-swchon-text="SI" data-swchoff-text="NO"></i>
+                                            Avvisami alle aperture degli ordini<br>
+                                            <div class="note">Se selezioni "No" non riceverai la mail che ti avvisa dell\'apertura di un ordine</div>
+                                    </label>
+
+                                    <hr>
+
+                                    <span class="toggle margin-top-10">Avvisi alle chiusure degli ordini</span>
                                     <label class="select">
                                         <select id="cb_alert_days">
                                             <option value="0" '.$zero.'>Nessun avviso</option>
@@ -63,17 +93,20 @@ $i='<form action="" class="smart-form">
                                         </select>
                                          <i></i>
                                     </label>
+                                    <hr>
+
+
                                 </section>
 
-                            </section>
+
 </form>';
 
-$wg_impostazioni = $ui->create_widget($options);
-$wg_impostazioni->id = "wg_impostazioni";
-$wg_impostazioni->body = array("content" => $i);
-$wg_impostazioni->header = array(
-    "title" => '<h2>Sito</h2>',
-    "icon" => 'fa fa-laptop'
+$wg_impostazioni_avvisi = $ui->create_widget($options);
+$wg_impostazioni_avvisi->id = "wg_impostazioni_avvisi";
+$wg_impostazioni_avvisi->body = array("content" => $avv);
+$wg_impostazioni_avvisi->header = array(
+    "title" => '<h2>Avvisi & mail</h2>',
+    "icon" => 'fa fa-envelope'
 );
 
 //CASSA
@@ -128,8 +161,11 @@ $v = '
             <div class="row">
                 <section class="col col-6">
                 <h6 class="margin-top-10 semi-bold margin-bottom-5">Qualcosa non funziona ?</h6>
-                    <a href="javascript:void(0);" class="btn btn-xs btn-block btn-primary" id="reset-smart-widget">
+                    <a href="javascript:void(0);" class="btn btn-xs btn-block btn-primary" id="reset-smart-widget" data-action="resetWidgets" data-title="Resetta">
                         <i class="fa fa-refresh"></i> Fai un reset !</a>
+                <h6 class="margin-top-10 semi-bold margin-bottom-5">Ripristina tutti gli aiuti</h6>
+                    <a href="javascript:void(0);" class="btn btn-xs btn-block btn-default" id="ripristina_help">
+                        <i class="fa fa-refresh"></i> Ripristina !</a>
                 </section>
 
 
@@ -198,9 +234,6 @@ $p= '
     '.r($user_permission & perm::puo_gestire_utenti,"Gestire gli utenti").'
     </dd>
     <dd>
-    '.r($user_permission & perm::puo_mod_perm_user_gas,"Gestire i permessi e le abilitazioni").'
-    </dd>
-    <dd>
     '.r($user_permission & perm::puo_creare_gas,"Gestire le anagrafiche del proprio GAS").'
     </dd>
     <dd>
@@ -248,6 +281,7 @@ $wg_permessi->header = array(
         <article class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
             <?php echo $wg_cassa->print_html(); ?>
             <?php echo $wg_impostazioni->print_html(); ?>
+            <?php echo $wg_impostazioni_avvisi->print_html(); ?>
         </article>
 
     </div>
@@ -425,6 +459,21 @@ $('input[type="checkbox"]#smart-fixed-container')
 
             localStorage.setItem('sm-container', "TRUE");
 
+            $.ajax({
+                      type: "POST",
+                      url: "ajax_rd4/_act_main.php",
+                      dataType: 'json',
+                      data: {act: "insidecontainer", value : "SI"},
+                      context: document.body
+                    }).done(function(data) {
+                        if(data.result=="OK"){
+                            ok(data.msg);
+                        }else{
+                            ko(data.msg);
+                        }
+
+                    });
+
             $('input[type="checkbox"]#smart-fixed-ribbon')
                 .prop('checked', false);
             $.root_.removeClass("fixed-ribbon");
@@ -456,6 +505,23 @@ $('input[type="checkbox"]#smart-fixed-container')
             //unchecked
             $.root_.removeClass("container");
             localStorage.setItem('sm-container', "FALSE");
+
+            $.ajax({
+                      type: "POST",
+                      url: "ajax_rd4/_act_main.php",
+                      dataType: 'json',
+                      data: {act: "insidecontainer", value : "NO"},
+                      context: document.body
+                    }).done(function(data) {
+                        if(data.result=="OK"){
+                            ok(data.msg);
+                        }else{
+                            ko(data.msg);
+                        }
+
+                    });
+
+
             $("#smart-bgimages")
                 .fadeOut();
             $("html").css("background-image", '');
@@ -464,14 +530,14 @@ $('input[type="checkbox"]#smart-fixed-container')
 
  /*
  * REFRESH WIDGET
- */
+
 $("#reset-smart-widget")
     .bind("click", function () {
         $('#refresh')
             .click();
         return false;
     });
-
+    */
     /*
  * STYLES
  */
@@ -494,6 +560,21 @@ $("#smart-styles > a")
           url: "ajax_rd4/user/_act.php",
           dataType: 'json',
           data: {act: "permetti_modifica", value : value},
+          context: document.body
+        }).done(function(data) {
+            if(data.result=="OK"){
+                    ok(data.msg);}else{ko(data.msg);}
+        });
+
+
+    });
+    $('#cb_avvisi_aperture').change(function () {
+        if(this.checked) {value = "SI";}else{value = "NO";}
+        $.ajax({
+          type: "POST",
+          url: "ajax_rd4/user/_act.php",
+          dataType: 'json',
+          data: {act: "avvisi_aperture", value : value},
           context: document.body
         }).done(function(data) {
             if(data.result=="OK"){
@@ -558,8 +639,31 @@ $("#smart-styles > a")
                 }
 
             });
-            e.preventDefault();
-        })
 
+
+            e.preventDefault();
+        });
+
+        $('#ripristina_help').click(function(){
+                    console.log("Ripristina help");
+                    $.ajax({
+                      type: "POST",
+                      url: "ajax_rd4/user/_act.php",
+                      dataType: 'json',
+                      data: {act: "ripristina_help"},
+                      context: document.body
+                    }).done(function(data) {
+                        if(data.result=="OK"){
+                                $.smallBox({
+                                    title : 'ReteDES.it',
+                                    content : data.msg + '<p class=\"text-align-right\"><a href=\"javascript:void(0);\" class=\"btn btn-default btn-sm\" onclick=\"javascript:location.reload();\">Ok</a></p>',
+                                    color : '#0074A7',
+                                    //timeout: 8000,
+                                    icon : 'fa fa-bell swing animated'
+                                });
+                        }else{ko(data.msg);}
+
+                    });
+            });
 
 </script>

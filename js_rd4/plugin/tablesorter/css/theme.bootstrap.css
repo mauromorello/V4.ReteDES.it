@@ -150,3 +150,4 @@
 	cursor: pointer;
 	background-color: #e6bf99;
 }
+.tablesorter thead .disabled {display: none}

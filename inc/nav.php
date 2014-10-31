@@ -4,8 +4,18 @@
 
 			<!-- User info -->
  			<div class="login-info">
+                <span> <!-- User image size is adjusted inside CSS, it should stay as is -->
 
-			</div>
+                    <a href="javascript:void(0);" id="show-shortcut" data-action="toggleShortcutTOGLIMI">
+                        <img src="<?php echo src_user(_USER_ID,64);?>" alt="Me" class="online">
+                        <!--<span>
+                            <?php echo _USER_FULLNAME; ?>
+                        </span>
+                        <i class="fa fa-angle-down"></i> -->
+                    </a>
+
+                </span>
+            </div>
 			<!-- end user info -->
 
 			<!-- NAVIGATION : This navigation is also responsive

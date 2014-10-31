@@ -5,175 +5,6 @@ $converter = new Encryption;
 
 $page_title = "Il mio GAS";
 
-$stmt = $db->prepare("SELECT * FROM  maaking_users WHERE id_gas = '"._USER_ID_GAS."'");
-$stmt->execute();
-$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-foreach ($rows as $row) {
-
-    $useridEnc = $converter->encode($row["userid"]);
-
-    $status ="";
-    $status_n ="Attivo";
-    $activate ='';
-    $suspend ='<li>
-                    <a href="javascript:sospendi(\''.$useridEnc.'\',\''.$row["fullname"].'\');"><i class="fa fa-warning"></i>&nbsp;Sospendi</a>
-                </li>';
-    $delete ='';
-
-    if($row["isactive"]==2){
-        $status = " warning ";
-        $status_n = "Sospeso";
-        $activate ='<li>
-                    <a href="javascript:attiva(\''.$useridEnc.'\',\''.$row["fullname"].'\');"><i class="fa fa-check"></i>&nbsp; Attiva</a>
-                </li>';
-        $suspend ='';
-        $delete = '<li>
-                    <a href="javascript:elimina(\''.$useridEnc.'\',\''.$row["fullname"].'\');"><i class="fa fa-trash-o"></i>&nbsp;Elimina</a>
-                  </li>';
-    }
-    if($row["isactive"]==3){
-        $status = " danger ";
-        $status_n = "Eliminato";
-        $suspend ='';
-        $delete='';
-        $activate ='<li>
-                    <a href="javascript:attiva(\''.$useridEnc.'\',\''.$row["fullname"].'\');"><i class="fa fa-check"></i>&nbsp; Attiva</a>
-                </li>';
-    }
-    if($row["isactive"]==0){
-        $status = " success ";
-        $status_n = "in Attesa";
-        $suspend ='';
-        $delete='<li>
-                    <a href="javascript:elimina(\''.$useridEnc.'\',\''.$row["fullname"].'\');"><i class="fa fa-trash-o"></i>&nbsp; Elimina</a>
-                  </li>';
-        $activate ='<li>
-                     <a href="javascript:attiva(\''.$useridEnc.'\',\''.$row["fullname"].'\');"><i class="fa fa-check"></i>&nbsp; Attiva</a>
-                    </li>';
-    }
-
-
-    if(_USER_PERMISSIONS & perm::puo_gestire_utenti){
-        $p = '  '.$activate.'
-                '.$suspend.'
-                '.$delete.'
-             ';
-        $p1='<div class="btn-group">
-                                <button class="btn btn-default dropdown-toggle" data-toggle="dropdown">
-                                    <i class="fa fa-gear"></i>
-                                </button>
-                                <ul class="dropdown-menu">
-                                    <li><a data-id="'.$row["userid"].'" href="ajax_rd4/gas/inc/messaggio.php?id='.$row["userid"].'" data-toggle="modal" data-target="#remoteModal"><i class="fa fa-envelope"></i>&nbsp; Messaggia</a></li>
-                                    <li class="divider"></li>
-                                    '.$p.'
-                                </ul>
-        </div>';
-    }else{
-        $p1 = '<a class="btn btn-default" data-id="'.$row["userid"].'" href="ajax_rd4/gas/inc/messaggio.php?id='.$row["userid"].'" data-toggle="modal" data-target="#remoteModal"><i class="fa fa-envelope"></i></a>';
-    }
-    if((_USER_PERMISSIONS & perm::puo_gestire_utenti) OR $row["isactive"]==1){
-
-        $z .= '<tr rel="'.$useridEnc.'" class="'.$status.'">
-                <td>'.$row["fullname"].'</td>
-                <td>'.$row["email"].'</td>
-                <td>'.$row["tel"].'</td>
-                <td>'.$status_n.'</td>
-                <td>
-                     '.$p1.'
-                </td>
-              </tr>';
-    }
-}
-
-
-$a='                            <table id="dt_utenti_gas" class="table table-striped margin-top-10">
-                                <thead>
-                                    <tr>
-                                        <th>Nome</th>
-                                        <th><i class="fa fa-envelope"></i>&nbsp;Mail</th>
-                                        <th>Tel</th>
-                                        <th>Status</th>
-                                        <th></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    '.$z.'
-                                </tbody>
-                            </table>
-
-                        ';
-if(_USER_PERMISSIONS & perm::puo_gestire_utenti){
-
-    $stmt = $db->prepare("SELECT count(*) FROM  maaking_users WHERE id_gas='"._USER_ID_GAS."'");
-    $stmt->execute();
-    $row = $stmt->fetch(PDO::FETCH_NUM);
-    $user_Tutti = $row[0];
-
-    $stmt = $db->prepare("SELECT count(*) FROM  maaking_users WHERE id_gas='"._USER_ID_GAS."' and isactive=1");
-    $stmt->execute();
-    $row = $stmt->fetch(PDO::FETCH_NUM);
-    $user_Attivi = $row[0];
-
-    $stmt = $db->prepare("SELECT count(*) FROM  maaking_users WHERE id_gas='"._USER_ID_GAS."' and isactive=2");
-    $stmt->execute();
-    $row = $stmt->fetch(PDO::FETCH_NUM);
-    $user_Sospesi = $row[0];
-
-    $stmt = $db->prepare("SELECT count(*) FROM  maaking_users WHERE id_gas='"._USER_ID_GAS."' and isactive=3");
-    $stmt->execute();
-    $row = $stmt->fetch(PDO::FETCH_NUM);
-    $user_Eliminati = $row[0];
-
-    $stmt = $db->prepare("SELECT count(*) FROM  maaking_users WHERE id_gas='"._USER_ID_GAS."' and isactive=0");
-    $stmt->execute();
-    $row = $stmt->fetch(PDO::FETCH_NUM);
-    $user_Attesa = $row[0];
-    if ($user_Attesa>0){
-        $btn_Attesa = '<a class="show_Attesa btn btn-success">in Attesa (<b>'.$user_Attesa.'</b>)</a>';
-    }else{
-        $btn_Attesa = "";
-    }
-
-$mp ='
-        <div class="row ">
-            <div class=" col-xs-4">
-                <h4>Filtra la tabella:</h4>
-                <div class="btn-group-vertical btn-block">
-                    <a class="show_Tutti btn btn-default">Tutti (<b>'.$user_Tutti.'</b>)</a>
-                    <a class="show_Sospesi btn btn-default">Sospesi (<b>'.$user_Sospesi.'</b>)</a>
-                    <a class="show_Attivi btn btn-default">Attivi (<b>'.$user_Attivi.'</b>)</a>
-                    <a class="show_Eliminati btn btn-default">Eliminati (<b>'.$user_Eliminati.'</b>)</a>
-                    '.$btn_Attesa.'
-                </div>
-            </div>
-
-            <div class="col-xs-4">
-                <h4>Composizione GAS</h4>
-                <br>
-                <div style="margin-left: auto;margin-right: auto; width: 70%;">
-                    <span  class="sparkline"  data-sparkline-type="pie" data-sparkline-offset="90" data-sparkline-piesize="128px">'.$user_Attivi.','.$user_Sospesi.','.$user_Eliminati.','.$user_Attesa.'</span>
-                </div>
-            </div>
-            <div class="col-xs-4">
-                <h4>Info <small>(Clicca su una riga...)</small></h4>
-                <div id="schedina_utente"></div>
-            </div>
-        </div>
-      ';
-
-}
-$options = array(   "editbutton" => false,
-                    "fullscreenbutton"=>true,
-                    "deletebutton"=>false,
-                    "colorbutton"=>true);
-$wg_utentigas = $ui->create_widget($options);
-$wg_utentigas->id = "wg_utentigas";
-$wg_utentigas->body = array("content" => $mp.'<hr>'.$a,"class" => "");
-$wg_utentigas->header = array(
-    "title" => '<h2>Utenti</h2>',
-    "icon" => 'fa fa-group'
-    );
-
 
 $stmt = $db->prepare("SELECT * FROM  retegas_gas WHERE id_gas = '"._USER_ID_GAS."'");
 $stmt->execute();
@@ -208,8 +39,145 @@ $wg_schedagas->header = array(
     "icon" => 'fa fa-home'
     );
 
+if(_USER_GAS_USA_CASSA){
+    $gas_usa_cassa = ' CHECKED="CHECKED" ';
+}else{
+    $gas_usa_cassa = ' ';
+}
+
+if(_USER_GAS_VISIONE_CONDIVISA){
+    $gas_visione_condivisa = ' CHECKED="CHECKED" ';
+}else{
+    $gas_visione_condivisa = ' ';
+}
+
+if(_USER_GAS_PUO_PART_ORD_EST){
+    $gas_part_ord_est = ' CHECKED="CHECKED" ';
+}else{
+    $gas_part_ord_est = ' ';
+}
+if(_USER_GAS_PUO_COND_ORD_EST){
+    $gas_cond_ord_est = ' CHECKED="CHECKED" ';
+}else{
+    $gas_cond_ord_est = ' ';
+}
+
+$op='<div class="row">
+
+        <form class="smart-form">
+        <section class="col col-sm-12">
+            <button class="btn btn-link pull-right"><i class="fa fa-question"></i></button>
+            <p class="label">Gestione condivisione <strong>ordini</strong>:</p>
+            <label class="toggle font-sm">
+                <input class="gas_option" type="checkbox"  data-act="gas_part_ord_est" name="checkbox-toggle" '.$gas_part_ord_est.'>
+                <i data-swchon-text="SI" data-swchoff-text="NO"></i>Il tuo GAS può partecipare ad ordini aperti da altri GAS
+            </label>
+            <label class="toggle font-sm">
+                <input class="gas_option" type="checkbox"  data-act="gas_cond_ord_est" name="checkbox-toggle" '.$gas_cond_ord_est.'>
+                <i data-swchon-text="SI" data-swchoff-text="NO"></i>Il tuo GAS può condividere propri ordini con altri GAS
+            </label>
+        </section>
+        <hr />
+        <section class="col col-sm-12 ">
+            <button class="btn btn-link pull-right"><i class="fa fa-question"></i></button>
+            <p class="label">Visibilità <strong>ordini</strong> condivisa:</p>
+            <label class="toggle font-sm">
+                <input  class="gas_option" type="checkbox" data-act="gas_option_visione_condivisa" name="checkbox-toggle" '.$gas_visione_condivisa.'>
+                <i data-swchon-text="SI" data-swchoff-text="NO"></i>Ogni utente può vedere la merce acquistata da altri (dello stesso gas)
+            </label>
+        </section>
+        <hr />
+        <section class="col col-sm-12">
+            <a href="javascript:void(0);" class="pull-right" data-placement="top" rel="tooltip" data-original-title="Tooltip"><i class="fa fa-question"></i></a>
+            <p class="label">Uso dello strumento <strong>cassa</strong>: </p>
+            <label class="toggle font-sm">
+                <input class="gas_option" data-act="gas_option_cassa"  type="checkbox"  name="checkbox-toggle" '.$gas_usa_cassa.'>
+                <i data-swchon-text="SI" data-swchoff-text="NO"></i>Il tuo gas usa la cassa
+            </label>
+        </section>
+        <hr />
+        </form>
+        </div>';
+
+$wg_gasopt = $ui->create_widget($options);
+$wg_gasopt->id = "wg_optiongas";
+$wg_gasopt->body = array("content" => $op,"class" => "");
+$wg_gasopt->header = array(
+    "title" => '<h2>Opzioni GAS</h2>',
+    "icon" => 'fa fa-check'
+    );
+
+$nu ='<form action="" id="smart-form-register" class="smart-form" method="POST">
+                            <header>
+                                Inserisci un nuovo utente
+                            </header>
+                            <br>
+                            <p class="alert alert-danger">Inserendo un nuovo utente da questa scheda lo si rende attivo da subito. Verrà inviata contestualmente all\'iscrizione una mail per avvisarlo, che risulterà proveniente dall\'user che lo ha iscritto.
+                                                            Chi inserisce un nuovo utente si assume la responsabilità di accettare regole e disclaimer per conto terzi.
+                                                            </p>
+                            <fieldset>
+                                <section>
+                                    <label class="input"> <i class="icon-append fa fa-user"></i>
+                                        <input id="fullname" type="text" name="fullname" placeholder="Nome e cognome">
+                                        <b class="tooltip tooltip-bottom-right">Il nome e cognome reale</b> </label>
+                                </section>
+
+                                <section>
+                                    <label class="input"> <i class="icon-append fa fa-user"></i>
+                                        <input id="username" type="text" name="username" placeholder="username">
+                                        <b class="tooltip tooltip-bottom-right">Nome utente usato per accedere</b> </label>
+                                </section>
+                                <section>
+                                    <label class="input"> <i class="icon-append fa fa-envelope-o"></i>
+                                        <input id="email" type="email" name="email" placeholder="Email">
+                                        <b class="tooltip tooltip-bottom-right">Inserisci un email valida!</b> </label>
+                                </section>
+
+                                <section>
+                                    <label class="input"> <i class="icon-append fa fa-lock"></i>
+                                        <input id="password" type="password" name="password" placeholder="Password" id="password">
+                                        <b class="tooltip tooltip-bottom-right">Inserisci la password</b> </label>
+                                </section>
+
+                                <section>
+                                    <label class="input"> <i class="icon-append fa fa-lock"></i>
+                                        <input id="password2" type="password" name="passwordConfirm" placeholder="Ripeti password">
+                                        <b class="tooltip tooltip-bottom-right">Controllo password</b> </label>
+                                </section>
+
+                                <section>
+                                    <label class="input"> <i class="icon-append fa fa-phone"></i>
+                                        <input id="tel" type="text" name="tel" placeholder="Telefono">
+                                        <b class="tooltip tooltip-bottom-right">Il suo recapito telefonico</b> </label>
+                                </section>
+                                <section>
+                                    <label class="checkbox">
+                                        <input type="checkbox"  name="puo_partecipare" id="puo_partecipare" checked="checked">
+                                        <i></i>Può partecipare agli ordini</label>
+                                    <label class="checkbox">
+                                        <input type="checkbox" name="puo_gestire" id="puo_gestire" checked="checked">
+                                        <i></i>Può gestire ordini</label>
+                                </section>
+
+                            </fieldset>
+
+                            <footer>
+                                <button type="submit" class="btn btn-primary">
+                                    Inserisci
+                                </button>
+                            </footer>
+                        </form>';
+
+$wg_scheda_nuovouser = $ui->create_widget($options);
+$wg_scheda_nuovouser->id = "wg_scheda_nuovouser";
+$wg_scheda_nuovouser->body = array("content" => $nu,"class" => "no-padding");
+$wg_scheda_nuovouser->header = array(
+    "title" => '<h2>Nuovo utente</h2>',
+    "icon" => 'fa fa-star'
+    );
+
 //LISTA GEO USERS
-$stmt = $db->prepare("SELECT * FROM maaking_users WHERE (city<>'') AND (user_gc_lat > 0) AND (id_gas='"._USER_ID_GAS."');");
+$stmt = $db->prepare("SELECT * FROM maaking_users WHERE (city<>'') AND (user_gc_lat > 0) AND (id_gas='"._USER_ID_GAS."') AND isactive=1;");
 $stmt->execute();
 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 foreach ($rows as $row) {
@@ -229,21 +197,16 @@ $geo_users = rtrim($geo_users,", ");
         <!-- PRIMA COLONNA-->
         <article class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
             <?php echo help_render_html('gas_home',$page_title); ?>
+            <?php if(_USER_PERMISSIONS & perm::puo_gestire_utenti){echo $wg_scheda_nuovouser->print_html();} ?>
+
         </article>
         <article class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
             <?php echo $wg_schedagas->print_html(); ?>
+            <?php if(_USER_PERMISSIONS & perm::puo_creare_gas){echo $wg_gasopt->print_html(); }?>
         </article>
 
     </div>
 
-    <hr>
-
-    <div class="row">
-        <!-- PRIMA COLONNA-->
-        <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-            <?php echo $wg_utentigas->print_html(); ?>
-        </article>
-    </div>
 </section>
 <!-- Dynamic Modal -->
                         <div class="modal fade" id="remoteModal" tabindex="-1" role="dialog" aria-labelledby="remoteModalLabel" aria-hidden="true">
@@ -301,160 +264,155 @@ $geo_users = rtrim($geo_users,", ");
         //------------HELP WIDGET
         <?php echo help_render_js('gas_home');?>
         //------------END HELP WIDGET
-        var oTable= $('#dt_utenti_gas').dataTable({
-                                            "bPaginate": false
-                                        });
+
         var id;
         var messaggio;
 
         console.log("Inizio Initialized");
         initialize();
 
-        $('body').on('hidden.bs.modal', '.modal', function () {
-          $(this).removeData('bs.modal');
+        var $registerForm = $("#smart-form-register").validate({
+
+            // Rules for form validation
+            rules : {
+                username : {
+                    required : true,
+                    maxlength : 20
+                },
+                email : {
+                    required : true,
+                    email : true
+                },
+                password : {
+                    required : true,
+                    minlength : 3,
+                    maxlength : 20
+                },
+                passwordConfirm : {
+                    required : true,
+                    minlength : 3,
+                    maxlength : 20,
+                    equalTo : '#password'
+                },
+                tel : {
+                    required : true
+                },
+                fullname : {
+                    required : true
+                }
+            },
+
+            // Messages for form validation
+            messages : {
+                login : {
+                    required : 'Inserisci un username'
+                },
+                email : {
+                    required : 'Inserisci un indirizzo Email',
+                    email : 'Inserisci un Email valida'
+                },
+                password : {
+                    required : 'Inserisci una password'
+                },
+                passwordConfirm : {
+                    required : 'Inserisci nuovamente la password',
+                    equalTo : 'Inserisci la stessa password'
+                },
+                tel : {
+                    required : 'Inserisci un recapito telefonico'
+                },
+                fullname : {
+                    required : 'Inserisci il suo nome reale'
+                }
+            },
+
+            submitHandler: function(form) {
+                var fullname = $("#fullname").val();
+                var username = $("#username").val();
+                var password = $("#password").val();
+                var password2 = $("#password2").val();
+                var tel = $("#tel").val();
+                var email = $("#email").val();
+                if($('#puo_partecipare').prop('checked')) {var puo_partecipare = 1;}else{ var puo_partecipare = 0;}
+                if($('#puo_gestire').prop('checked')) {var puo_gestire = 1;}else{ var puo_gestire = 0;}
+                $.ajax({
+                      type: "POST",
+                      url: "ajax_rd4/gas/_act.php",
+                      dataType: 'json',
+                      data: {act: "register_new",
+                        fullname : fullname,
+                        username:username,
+                        password:password,
+                        password2:password2,
+                        tel:tel,
+                        email:email,
+                        puo_partecipare:puo_partecipare,
+                        puo_gestire:puo_gestire},
+                      context: document.body
+                    }).done(function(data) {
+                        if(data.result=="OK"){
+                            ok(data.msg);
+                            $("#fullname").val('');
+                            $("#username").val('');
+                            $("#password").val('');
+                            $("#password2").val('');
+                            $("#tel").val('');
+                            $("#email").val('');
+                        }else{
+                            ko(data.msg);
+                        }
+                    });
+
+
+
+                return false;
+            },
+
+            // Do not change code below
+            errorPlacement : function(error, element) {
+                error.insertAfter(element.parent());
+            }
         });
 
-        $('body').on('shown.bs.modal','.modal', function(e) {
-            console.log("Modal opened");
-            id = $(e.relatedTarget).attr('data-id');
-        });
+        $('.gas_option').change(function (e) {
+            var checkbox = $(this);
+            if(this.checked) {var value = 1;}else{var value = 0;}
+            $.SmartMessageBox({
+                title : "Modifichi questa opzione ?",
+                content : "<b>Attenzione:</b> alcune modifiche influiranno su quello che gli utenti del tuo gas potranno fare o vedere. ",
+                buttons : "[Cancella][Procedi]"
+            }, function(ButtonPress, Value) {
 
-
-        $(document).on( 'change', '#usermessage', function() {
-            messaggio = $(this).val();
-            console.log("messaggio = " + messaggio);
-
-        });
-
-        $('body').on('click', '#usermessage_go', function () {
-            //invio il messaggio ciccio
-
-            $.ajax({
-              type: "POST",
-              url: "ajax_rd4/gas/_act.php",
-              dataType: 'json',
-              data: {act: "messaggia", messaggio : messaggio, id:id},
-              context: document.body
-            }).done(function(data) {
-                if(data.result=="OK"){
-                    ok(data.msg);
-                    messaggio='';
+                if(ButtonPress=="Procedi"){
+                    var act = $(checkbox).data('act');
+                    $.ajax({
+                      type: "POST",
+                      url: "ajax_rd4/gas/_act.php",
+                      dataType: 'json',
+                      data: {act: act, value : value},
+                      context: document.body
+                    }).done(function(data) {
+                        if(data.result=="OK"){
+                            ok(data.msg);
+                        }else{
+                            ko(data.msg);
+                            $(checkbox).prop('checked', !checkbox.checked);
+                        }
+                    });
                 }else{
-                    ko(data.msg);
+                    console.log("cancella");
+                    $(checkbox).prop('checked', !checkbox.checked);
                 }
             });
-
-
-            //chiudo il modal
-            $('#remoteModal').modal('hide');
         });
-
-        $('.show_Attesa').click(function(){oTable.fnFilter( 'in Attesa',3 );});
-        $('.show_Attivi').click(function(){oTable.fnFilter( 'Attivo',3 );});
-        $('.show_Sospesi').click(function(){oTable.fnFilter( 'Sospeso',3 );});
-        $('.show_Eliminati').click(function(){oTable.fnFilter( 'Eliminato',3 );});
-        $('.show_Tutti').click(function(){  oTable.fnFilter('',3);
-                                            oTable.fnFilter('');});
-        //MOstro solo gli attivi
-        oTable.fnFilter( 'Attivo',3 );
-
-        //se clicco
-        $('#dt_utenti_gas tbody').on( 'click', 'tr', function () {
-            var value = $(this).attr('rel');
-                $.ajax({
-                  type: "POST",
-                  url: "ajax_rd4/gas/inc/info_utente.php",
-                  data: {userid : value},
-                  context: document.body
-               }).done(function(data) {
-
-                   $('#schedina_utente').html(data);
-
-
-            });
-        } );
-
 
     } // end pagefunction
 
 
-    var attiva = function(userid, fullname) {
 
-            $.SmartMessageBox({
-                title : "Attiva " + fullname,
-                content : "Verrà comunicata l'avvenuta attivazione con una mail.",
-                buttons : "[Esci][Attiva]"
-            }, function(ButtonPress, Value) {
 
-                if(ButtonPress=="Attiva"){
 
-                    $.ajax({
-                          type: "POST",
-                          url: "ajax_rd4/gas/_act.php",
-                          dataType: 'json',
-                          data: {act: "attiva_utente", value : userid},
-                          context: document.body
-                        }).done(function(data) {
-                            if(data.result=="OK"){
-                                    ok(data.msg);}else{ko(data.msg);}
-                                    //location.reload();
-                        });
-                }
-            });
-        }
-    var sospendi = function(userid, fullname) {
 
-            $.SmartMessageBox({
-                title : "Sospendi " + fullname,
-                content : "L'utente rimarrà sospeso fino ad una nuova riattivazione.",
-                buttons : "[Esci][Sospendi]"
-            }, function(ButtonPress, Value) {
-
-                if(ButtonPress=="Sospendi"){
-
-                    $.ajax({
-                          type: "POST",
-                          url: "ajax_rd4/gas/_act.php",
-                          dataType: 'json',
-                          data: {act: "sospendi_utente", value : userid},
-                          context: document.body
-                        }).done(function(data) {
-                            if(data.result=="OK"){
-                                    ok(data.msg);
-                                    //location.reload();
-                            }else{ko(data.msg);}
-
-                        });
-                }
-            });
-        }
-
-        var elimina = function(userid, fullname) {
-
-            $.SmartMessageBox({
-                title : "Elimina " + fullname,
-                content : "L'utente eliminato non potrà più accedere, nè reiscriversi con la stessa mail.<br>Tutti i suoi dati (ordini, listini ecc) saranno comunque conservati.",
-                buttons : "[Esci][Elimina]"
-            }, function(ButtonPress, Value) {
-
-                if(ButtonPress=="Elimina"){
-
-                    $.ajax({
-                          type: "POST",
-                          url: "ajax_rd4/gas/_act.php",
-                          dataType: 'json',
-                          data: {act: "elimina_utente", value : userid},
-                          context: document.body
-                        }).done(function(data) {
-                            if(data.result=="OK"){
-                                    ok(data.msg);
-                                    //location.reload();
-                            }else{ko(data.msg);}
-
-                        });
-                }
-            });
-        }
     $(window).unbind('gMapsLoaded');
 
     function loadMap(){
@@ -465,18 +423,8 @@ $geo_users = rtrim($geo_users,", ");
     }
 
 
-    loadScript("js/plugin/datatables/jquery.dataTables.min.js", function(){
-        loadScript("js/plugin/datatables/dataTables.colVis.min.js", function(){
-            loadScript("js/plugin/datatables/dataTables.tableTools.min.js", function(){
-                loadScript("js/plugin/datatables/dataTables.bootstrap.min.js", function(){
-                    loadScript("js/plugin/datatable-responsive/datatables.responsive.min.js", function(){
 
-                            loadScript("js/plugin/x-editable/x-editable.min.js", loadMap)
 
-                    });
-                });
-            });
-        });
-    });
+    loadScript("js/plugin/x-editable/x-editable.min.js", loadMap);
 
 </script>

@@ -57,7 +57,7 @@ foreach($rows as $row){
 
 
             $d.='<tr class="'.$class_tr.'">
-                    <td><a href="#">'.$row["descrizione_ditte"].'</a><br><span class="font-xs">'.$row["fullname"].'</span></td>
+                    <td><a href="#ajax_rd4/fornitori/scheda.php?id='.$row["id_ditte"].'">'.$row["descrizione_ditte"].'</a><br><span class="font-xs">'.$row["fullname"].'</span></td>
                     <td><a href="tel:'.$row["telefono"].'" class="visible-xs">'.$row["telefono"].'</a><span class="hidden-xs">'.$row["telefono"].'</span></td>
                     <td>'.$row["mail_ditte"].'</td>
                     <td>'.$geo.'&nbsp;&nbsp;'.$row["indirizzo"].'</td>
@@ -76,22 +76,12 @@ $wg_ditte->header = array(
     "icon" => 'fa fa-bar-truck'
 );
 
-
-
-
+if(_USER_PERMISSIONS & perm::puo_creare_ditte){
+    $button[] = '<form style="margin-right:10px;"><button  class="aggiungi_ditta btn btn-default btn-success navbar-btn"><i class="fa fa-plus"></i> Nuova ditta</button></form>';
+}
 
 ?>
-<div class="inbox-nav-bar no-content-padding">
-    <div class="row">
-        <div class="col col-xs-12 col-sm-8 col-md-8 col-lg-8">
-            <h1 class="page-title txt-color-blueDark"><i class="fa fa-fw fa-truck"></i> Tutte le  ditte &nbsp;</h1>
-        </div>
-        <div class="col col-xs-12 col-sm-4 col-md-4 col-lg-4">
-
-        </div>
-    </div>
-    <div class="clearfix"></div>
-</div>
+<?php echo navbar('<i class="fa fa-2x fa-truck pull-left"></i> Tutte le  ditte<br>',$button); ?>
 
 <section id="widget-grid" class="margin-top-10">
 
@@ -150,7 +140,6 @@ $wg_ditte->header = array(
                 }
             }
             });
-
 
 
     };

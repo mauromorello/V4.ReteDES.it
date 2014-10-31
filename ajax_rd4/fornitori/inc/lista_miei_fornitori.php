@@ -51,7 +51,7 @@ if($row["website"]<>""){
 
     $li.= '<li class="list-group-item fornitore" name="'.$row["id_ditte"].'">
             <span class="pull-right">'.$note.'<br>'.$tag.'</span>
-            <strong class="font-md ditta_selector" style="cursor:pointer" rel="'.$row["id_ditte"].'">'.$row["descrizione_ditte"].'</strong><br>'
+            <strong class="font-md ditta_selector" style="cursor:pointer" rel="'.$row["id_ditte"].'"><a href="#ajax_rd4/fornitori/scheda.php?id='.$row["id_ditte"].'">'.$row["descrizione_ditte"].'</a></strong><br>'
             .$tel.$web.'<br>'
             .'<small class="font-sm">'.$geo.$mail.'</small>
             </li>';

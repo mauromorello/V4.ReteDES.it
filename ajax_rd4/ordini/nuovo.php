@@ -5,6 +5,8 @@ $page_title= "Nuovo Ordine";
 $var ="ciccio";
 $s =<<<SEMPLICE
 <style>.select2-hidden-accessible{display:none}</style>
+<div class="row">
+<div class="col-12">
 <form action="ajax_rd4/ordini/_act.php" method="post" id="nuovo_ordine_form" class="smart-form">
                             <fieldset>
 
@@ -47,6 +49,8 @@ $s =<<<SEMPLICE
 
                             </footer>
 </form>
+</div>
+</div>
 SEMPLICE;
 
 $options = array(   "editbutton" => false,
@@ -55,17 +59,14 @@ $options = array(   "editbutton" => false,
                     "colorbutton"=>true);
 $wg_nuovo_semplice = $ui->create_widget($options);
 $wg_nuovo_semplice->id = "wg_nuovo_semplice";
-$wg_nuovo_semplice->body = array("content" => $s,"class" => "no-paddings");
+$wg_nuovo_semplice->body = array("content" => $s,"class" => "");
 $wg_nuovo_semplice->header = array(
     "title" => '<h2>Nuovo ordine</h2>',
     "icon" => 'fa fa-sign-in'
 );
-
+$title_navbar='<i class="fa fa-shopping-cart fa-2x pull-left"></i> Nuovo ordine!<br><small class="note">Buttati nella mischia!</small>';
 ?>
-
-<div class="inbox-nav-bar no-content-padding">
-    <h1 class="page-title txt-color-blueDark"><i class="fa fa-fw fa-user"></i> Nuovo ordine &nbsp;</h1>
-</div>
+<?php echo navbar($title_navbar); ?>
 
 <section id="widget-grid" class="margin-top-10">
 
@@ -73,11 +74,8 @@ $wg_nuovo_semplice->header = array(
 
     <div class="row">
         <!-- PRIMA COLONNA-->
-        <article class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+        <article class="col-xs-12 col-sm-12 col-md-12col-lg-12">
             <?php echo $wg_nuovo_semplice->print_html(); ?>
-        </article>
-        <article class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
-
             <?php echo help_render_html("nuovo_ordine",$page_title); ?>
         </article>
 
@@ -144,7 +142,7 @@ $wg_nuovo_semplice->header = array(
 
             },
             formatResult: function(data){
-                return '<span>'+data.descrizione_ditte+'</span><br><span><strong>'+data.text+'</strong><span><br><span class="font-xs">'+data.fullname+', '+data.descrizione_gas+' (valido fino al <b>'+data.data_valido+'</b>)</span>' ;
+                return '<span>'+data.descrizione_ditte+'</span><br><span>#'+data.id+'</span> <span><strong>'+data.text+'</strong><span><br><span class="font-xs">'+data.fullname+', '+data.descrizione_gas+' (valido fino al <b>'+data.data_valido+'</b>)</span>' ;
             },
             escapeMarkup: function(m) { return m; }
     });

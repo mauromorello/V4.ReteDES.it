@@ -15,7 +15,7 @@ $base_url .= "/gas4";
 defined("APP_URL") ? null : define("APP_URL", str_replace("/lib", "", $base_url));
 //Assets URL, location of your css, img, js, etc. files
 defined("ASSETS_URL") ? null : define("ASSETS_URL", APP_URL);
-
+defined("USER_IMG_URL") ? null : define("USER_IMG_URL",$base_url."/public_rd4/users/");
 
 //require library files
 require_once("util.php");

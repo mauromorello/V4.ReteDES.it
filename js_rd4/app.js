@@ -200,11 +200,27 @@ var calc_navbar_height = function() {
 					}, function(ButtonPressed) {
 						if (ButtonPressed == "Si") {
 							$.root_.addClass('animated fadeOutUp');
-							setTimeout(logout, 1000);
-						}
+							setTimeout(logout, 2000);
+  						}
 					});
 					function logout() {
-						window.location = $this.attr('href');
+                        //USER LOGOUT
+                            $.ajax({
+                                  type: "POST",
+                                  url: "ajax_rd4/_act_main.php",
+                                  dataType: 'json',
+                                  data: {act: "do_logout"},
+                                  context: document.body
+                                }).done(function(data) {
+                                    if(data.result=="OK"){
+                                        window.location = $this.attr('href');
+                                    }else{
+                                        ko(data.msg);
+                                    }
+                                });
+
+
+
 					}
 
 				},
@@ -214,7 +230,7 @@ var calc_navbar_height = function() {
 					$.widresetMSG = $this.data('reset-msg');
 
 					$.SmartMessageBox({
-						title : "<i class='fa fa-refresh' style='color:green'></i> Clear Local Storage",
+						title : "<i class='fa fa-refresh' style='color:green'></i> Resetta un po' di cose...",
 						content : $.widresetMSG || "Vuoi davvero cancellare le impostazioni di visualizzazione ?",
 						buttons : '[No][Si]'
 					}, function(ButtonPressed) {
@@ -429,7 +445,7 @@ var calc_navbar_height = function() {
 				if ($this.find('.badge').hasClass('bg-color-red')) {
 					$this.find('.badge').removeClassPrefix('bg-color-');
 					$this.find('.badge').text("0");
-					// console.log("Ajax call for activity")
+					console.log("Ajax call for activity")
 				}
 
 				if (!$this.next('.ajax-dropdown').is(':visible')) {
@@ -441,7 +457,7 @@ var calc_navbar_height = function() {
 				}
 
 				var mytest = $this.next('.ajax-dropdown').find('.btn-group > .active > input').attr('id');
-				//console.log(mytest)
+				console.log(mytest)
 
 				//clear memory reference
 				$this = null;
@@ -1402,7 +1418,8 @@ var calc_navbar_height = function() {
 				deleteButton : true,
 				deleteClass : 'fa fa-times',
 				deleteSpeed : 200,
-				onDelete : function() {
+				onDelete : function(id) {
+                    console.log(id);
 				},
 				// edit btn
 				editButton : true,
@@ -1524,7 +1541,7 @@ var calc_navbar_height = function() {
 
 		} else if (callback) {
 			// changed else to else if(callback)
-			//console.log("JS file already added!");
+			console.log("JS file already added!");
 			//execute function
 			callback();
 		}

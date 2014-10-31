@@ -35,6 +35,17 @@ class perm{
         const puo_vedere_retegas        =32768; //15    SUPER USER
         const puo_gestire_retegas       =65536; //16    ZEUS USER
     }
+class ope{
+        const rettifica = "@@RETT";     //1
+        const trasporto = "@@TRASP";    //2
+        const gestione = "@@GEST";      //3
+        const progetto = "@@PROG";      //4
+        const rimborso = "@@RIMB";      //5
+        const maggiorazione = "@@MAGG"; //6
+        const sconto ="@@SCONT";        //7
+        const abbuono ="@@ABBN";        //8
+}
+
 function conv_datetime_from_db ($data){
   //list ($y, $m, $d) = explode ("-", $data);
   //return "$d/$m/$y";   YYYY-MM-DD
@@ -44,17 +55,24 @@ function conv_datetime_from_db ($data){
   $h=substr($data, 11, 2);
   $min=substr($data, 14, 2);
   $sec=substr($data, 17, 2);
-
   if(empty($h)){$h="00";}
   if(empty($min)){$min="00";}
   if(empty($sec)){$sec="00";}
-
-
   return "$d/$m/$y $h:$min";//":$sec";
-
-
-
-
+}
+function conv_date_from_db ($data){
+  //list ($y, $m, $d) = explode ("-", $data);
+  //return "$d/$m/$y";   YYYY-MM-DD
+  $y=substr($data, 0, 4);
+  $m=substr($data, 5, 2);
+  $d=substr($data, 8, 2);
+  $h=substr($data, 11, 2);
+  $min=substr($data, 14, 2);
+  $sec=substr($data, 17, 2);
+  if(empty($h)){$h="00";}
+  if(empty($min)){$min="00";}
+  if(empty($sec)){$sec="00";}
+  return "$d/$m/$y";//":$sec";
 }
 function IsLoggedIn(){
     global $db;
@@ -129,6 +147,19 @@ function IsLoggedIn(){
            $row = $stmt->fetch(PDO::FETCH_ASSOC);
            define("_USER_NONMOSTRAREHELPHOME",$row["valore_text"]=='SI' ? true: false);
 
+           //INSIDECONTAINER
+           $stmt = $db->prepare("SELECT * FROM retegas_options WHERE id_user="._USER_ID." AND chiave='_V4_INSIDECONTAINER' LIMIT 1;");
+           $stmt->execute();
+           $row = $stmt->fetch(PDO::FETCH_ASSOC);
+           define("_USER_INSIDECONTAINER",$row["valore_text"]=='SI' ? true: false);
+
+           //AVVISI APERTURE
+           $stmt = $db->prepare("SELECT * FROM retegas_options WHERE id_user="._USER_ID." AND chiave='_V4_AVVISIAPERTURE' LIMIT 1;");
+           $stmt->execute();
+           $row = $stmt->fetch(PDO::FETCH_ASSOC);
+           define("_USER_AVVISIAPERTURE",$row["valore_text"]=='NO' ? false: true);
+
+
            //GAS
            $stmt = $db->prepare("SELECT * FROM retegas_gas WHERE id_gas=:id LIMIT 1;");
            $stmt->bindValue(':id', _USER_ID_GAS, PDO::PARAM_INT);
@@ -149,6 +180,30 @@ function IsLoggedIn(){
            $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
            define("_USER_GAS_USA_CASSA",$row['valore_text']=='SI' ? true: false );
+
+           //GAS _GAS_VISIONE_CONDIVISA
+           $stmt = $db->prepare("SELECT * FROM retegas_options WHERE id_gas =:id_gas AND chiave ='_GAS_VISIONE_CONDIVISA';");
+           $stmt->bindValue(':id_gas', _USER_ID_GAS, PDO::PARAM_INT);
+           $stmt->execute();
+           $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+           define("_USER_GAS_VISIONE_CONDIVISA",$row['valore_text']=='SI' ? true: false );
+
+           //GAS _GAS_PARTECIPAZIONE  ORDINI ESTERNI
+           $stmt = $db->prepare("SELECT * FROM retegas_options WHERE id_gas =:id_gas AND chiave ='_GAS_PUO_PART_ORD_EST';");
+           $stmt->bindValue(':id_gas', _USER_ID_GAS, PDO::PARAM_INT);
+           $stmt->execute();
+           $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+           define("_USER_GAS_PUO_PART_ORD_EST",$row['valore_text']=='SI' ? true: false );
+
+           //GAS _GAS_CONDIVIDERE  ORDINI ESTERNI
+           $stmt = $db->prepare("SELECT * FROM retegas_options WHERE id_gas =:id_gas AND chiave ='_GAS_PUO_COND_ORD_EST';");
+           $stmt->bindValue(':id_gas', _USER_ID_GAS, PDO::PARAM_INT);
+           $stmt->execute();
+           $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+           define("_USER_GAS_PUO_COND_ORD_EST",$row['valore_text']=='SI' ? true: false );
 
            //GAS CASSA VISUALIZZAZIONE SALDO
            $stmt = $db->prepare("SELECT * FROM retegas_options WHERE id_gas =:id_gas AND chiave ='_GAS_CASSA_VISUALIZZAZIONE_SALDO';");

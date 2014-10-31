@@ -45,11 +45,13 @@ if(!empty($_POST["act"])){
 
     //esiste
     $stmt = $db->prepare("INSERT INTO retegas_ditte (id_proponente,descrizione_ditte) VALUES ('"._USER_ID."',:nome) ;");
-
     $stmt->bindParam(':nome', $_POST['value'], PDO::PARAM_STR);
     $stmt->execute();
+
+    $id = $db->lastInsertId();
+
     if($stmt->rowCount()==1){
-        $res=array("result"=>"OK", "msg"=>"Ditta aggiunta" );
+        $res=array("result"=>"OK", "msg"=>"Ditta aggiunta", "id"=>$id );
     }else{
         $res=array("result"=>"KO", "msg"=>"Errore nel db." );
     }
