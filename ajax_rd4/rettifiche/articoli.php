@@ -1,5 +1,6 @@
 <?php
 require_once("inc/init.php");
+require_once("../../lib_rd4/class.rd4.ordine.php");
 $ui = new SmartUI;
 $converter = new Encryption;
 
@@ -8,12 +9,19 @@ if ($id_ordine==0){
     $id_ordine = CAST_TO_INT($_GET["id"],0);
 }
 
-if($id_ordine==0){echo "missing id"; die();}
+if($id_ordine==0){echo rd4_go_back("KO!");die;}
 
 if (!posso_gestire_ordine($id_ordine)){
-        echo "Non posso farlo..."; die();
+    echo rd4_go_back("Non ho i permessi necessari");die;
 }
-
+$O=new ordine($id_ordine);
+if($O->codice_stato=="CO"){
+    echo rd4_go_back("Ordine già convalidato");
+    die;
+}
+if(livello_gestire_ordine($id_ordine)<2){
+    echo rd4_go_back("Puoi solo gestire la parte del tuo GAS.");die;
+}
 
 $stmt = $db->prepare("SELECT * from retegas_ordini WHERE id_ordini=:id_ordine;");
         $stmt->bindParam(':id_ordine', $id_ordine, PDO::PARAM_INT);
@@ -111,14 +119,8 @@ $page_title = "Rettifiche Articoli";
 
 
 ?>
-<?php echo navbar_ordine($id_ordine); ?>
-<section id="widget-grid" class="margin-top-10">
-    <div class="row">
-        <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-            <?php echo help_render_html('rettifiche_articoli',$page_title); ?>
-        </article>
-    </div>
-</section>
+<?php echo $O->navbar_ordine(); ?>
+<p></p>
 <div class="panel panel-blueLight padding-10" >
     <p class="font-xl">Rettifica gli ARTICOLI arrivati:<br><span class="note">Controlla anche le scatole.</span></p>
 
@@ -148,7 +150,13 @@ $page_title = "Rettifiche Articoli";
     </div>
 
 </div>
-
+<section id="widget-grid" class="margin-top-10">
+    <div class="row">
+        <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+            <?php echo help_render_html('rettifiche_articoli',$page_title); ?>
+        </article>
+    </div>
+</section>
 
 <script type="text/javascript">
 

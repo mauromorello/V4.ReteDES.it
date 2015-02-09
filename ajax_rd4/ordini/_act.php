@@ -1,8 +1,176 @@
 <?php
 require_once("inc/init.php");
+if(file_exists("../../lib_rd4/class.rd4.user.php")){require_once("../../lib_rd4/class.rd4.user.php");}
+if(file_exists("../lib_rd4/class.rd4.user.php")){require_once("../lib_rd4/class.rd4.user.php");}
+if(file_exists("../../lib_rd4/class.rd4.ordine.php")){require_once("../../lib_rd4/class.rd4.ordine.php");}
+if(file_exists("../lib_rd4/class.rd4.ordine.php")){require_once("../lib_rd4/class.rd4.ordine.php");}
 
 if(!empty($_POST["act"])){
     switch ($_POST["act"]) {
+
+    case "diventa_referente":
+
+    $id_ordine= CAST_TO_INT($_POST["id_ordine"],0);
+
+    $O = new ordine($id_ordine);
+
+    if(_USER_PERMISSIONS & perm::puo_creare_ordini){
+        $sql = "UPDATE retegas_referenze SET retegas_referenze.id_utente_referenze = '"._USER_ID."'
+                                WHERE
+                                (((retegas_referenze.id_ordine_referenze)=:id_ordine)
+                                AND ((retegas_referenze.id_gas_referenze)='"._USER_ID_GAS."'));";
+        $stmt = $db->prepare($sql);
+        $stmt->bindParam(':id_ordine', $id_ordine, PDO::PARAM_INT);
+        $stmt->execute();
+
+        $lista = $O->EMAIL_lista_potenziali_partecipanti(_USER_ID_GAS);
+
+
+        $mailFROM = _USER_MAIL;
+        $fullnameFROM = _USER_FULLNAME;
+
+        $oggetto = "[reteDES.it] Nuovo referente: ".$fullnameFROM;
+
+        $profile = new Template('../../email_rd4/nuovo_referente.html');
+        $profile->set("fullnameFROM", $fullnameFROM );
+        $profile->set("descrizioneORDINE", $O->descrizione_ordini );
+        $profile->set("descrizioneDITTA", $O->descrizione_ditte );
+        $profile->set("fullnameGESTORE", $O->fullname_referente );
+        $profile->set("gasGESTORE", $O->descrizione_gas_referente );
+        $profile->set("dataCHIUSURA", $O->data_chiusura_lunga );
+        $profile->set("linkORDINE", 'http://retegas.altervista.org/gas4/#ajax_rd4/ordini/ordine.php?id='.$O->id_ordini );
+        $profile->set("linkDITTA", 'http://retegas.altervista.org/gas4/#ajax_rd4/ordini/ordine.php?id='.$O->id_ordini );
+
+        $messaggio = $profile->output();
+
+        //if(SEmail('MAuro','famiglia.morello@gmail.com',$fullnameFROM,$mailFROM,$oggetto,$messaggio)){
+        if(SEmailMulti($lista,$fullnameFROM,$mailFROM,$oggetto,$messaggio,"referenteGAS")){
+            $res=array("result"=>"OK", "msg"=>"Sei un referente GAS! Sono stati avvisati i tuoi amici gasisti." );
+        }else{
+            $res=array("result"=>"KO", "msg"=>"KO" );
+        }
+    }else{
+        $res = array("result"=>"KO", "msg"=>"Non hai i permessi per gestire gli ordini :(");
+    }
+    echo json_encode($res);
+    die();
+
+    break;
+
+    case "accetta_aiuto":
+
+    $id_option= CAST_TO_INT($_POST["id_option"],0);
+    $stmt = $db->prepare("UPDATE retegas_options
+                            SET valore_int=1
+                            WHERE
+                            id_option=:id_option
+                            LIMIT 1;");
+    $stmt->bindParam(':id_option', $id_option, PDO::PARAM_INT);
+    $stmt->execute();
+
+    echo json_encode(array("result"=>"OK", "msg"=>"Confermato.".$id_option));
+    die();
+
+    break;
+    case "declina_aiuto":
+
+    $id_option= CAST_TO_INT($_POST["id_option"],0);
+    $stmt = $db->prepare("DELETE FROM retegas_options
+                            WHERE
+                            id_option=:id_option
+                            LIMIT 1;");
+    $stmt->bindParam(':id_option', $id_option, PDO::PARAM_INT);
+    $stmt->execute();
+
+    echo json_encode(array("result"=>"OK", "msg"=>"Offerta declinata gentilmente."));
+    die();
+
+    break;
+
+
+    case "offerta_aiuto":
+    $id_ordine =  CAST_TO_INT($_POST['id_ordine'],0);
+
+    if($id_ordine<1){
+        echo json_encode(array("result"=>"KO", "msg"=>"Id missing"));
+        die();
+    }
+
+    if(CAST_TO_STRING($_POST["value"])==""){
+        echo json_encode(array("result"=>"KO", "msg"=>"Serve un commento"));
+        die();
+    }
+
+    $stmt = $db->prepare("DELETE FROM retegas_options
+                            WHERE
+                                chiave='AIUTO_ORDINI'
+                                AND
+                                id_user='"._USER_ID."'
+                                AND
+                                id_ordine=:id_ordine
+                                LIMIT 1;");
+    $stmt->bindParam(':id_ordine', $id_ordine, PDO::PARAM_INT);
+    $stmt->execute();
+
+    //esiste
+    $stmt = $db->prepare("INSERT INTO retegas_options (id_user,
+                                        chiave,
+                                        valore_text,
+                                        id_gas,
+                                        id_ordine,
+                                        valore_int)
+                                        VALUES (
+                                        "._USER_ID.",
+                                        'AIUTO_ORDINI',
+                                        :value,
+                                        "._USER_ID_GAS.",
+                                        :id_ordine,
+                                        0);");
+
+    $stmt->bindParam(':value', CAST_TO_STRING($_POST['value']), PDO::PARAM_STR);
+    $stmt->bindParam(':id_ordine', $id_ordine, PDO::PARAM_INT);
+    $stmt->execute();
+
+    if($stmt->rowCount()==1){
+        $fullnameFROM = _USER_FULLNAME;
+        $mailFROM = _USER_MAIL;
+
+        $O = new ordine($id_ordine);
+        $mailTO = $O->email_referente;
+        $fullnameTO = $O->fullname_referente;
+        $descrizione_ordine = $O->descrizione_ordini;
+        $gas_referente = $O->descrizione_gas_referente;
+
+        unset($O);
+
+
+        //manda mail di carico credito
+        $oggetto = "[reteDES.it] Offerta di aiuto :)";
+        $profile = new Template('../../email_rd4/offerta_di_aiuto.html');
+
+        $profile->set("fullnameFROM", $fullnameFROM );
+        $profile->set("gasFROM", $gas_referente );
+        $profile->set("id_ordine", $id_ordine );
+        $profile->set("ruolo", CAST_TO_STRING($_POST['value']) );
+        $profile->set("descrizione_ordine", $descrizione_ordine );
+        $profile->set("url_pagina", "http://retegas.altervista.org/gas4/#ajax_rd4/ordini/aiutanti.php?id=".$id_ordine );
+
+        $messaggio = $profile->output();
+
+        if(SEmail($fullnameTO,$mailTO,$fullnameFROM,$mailFROM,$oggetto,$messaggio,"OffertaAiuto")){
+
+        }else{
+
+        }
+        $res=array("result"=>"OK", "msg"=>"Richiesta inoltrata :)", "Mail"=>$mailTO );
+
+    }else{
+        $res=array("result"=>"KO", "msg"=>"Errore." );
+    }
+
+    echo json_encode($res);
+    break;
+
         case "gas_partecipa":
         if (!posso_gestire_ordine((int)$_POST['id_ordine'])){
             echo json_encode(array("result"=>"KO", "msg"=>"Non hai i permessi necessari" ));

@@ -50,7 +50,7 @@ switch ($_POST["act"]) {
             $messaggio = $profile->output();
 
 
-            if(SEmail($fullnameTO,$mailTO,$fullnameFROM,$mailFROM,$oggetto,$messaggio)){
+            if(SEmail($fullnameTO,$mailTO,$fullnameFROM,$mailFROM,$oggetto,$messaggio,"password")){
                 $res=array("result"=>"OK", "msg"=>"La nuova password ti è stata appena spedita.<br>Controlla la tua mail anche nella cartella della SPAM, se non la vedi in <i>posta arrivata</i>" );
                 echo json_encode($res);
                 die();

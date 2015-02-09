@@ -456,12 +456,17 @@ var calc_navbar_height = function() {
 					$this.removeClass('active');
 				}
 
-				var mytest = $this.next('.ajax-dropdown').find('.btn-group > .active > input').attr('id');
-				console.log(mytest)
+				//var mytest = $this.next('.ajax-dropdown').find('.btn-group > .active > input').attr('id');
+				//console.log(mytest)
 
 				//clear memory reference
 				$this = null;
-				mytest = null;
+				//mytest = null;
+
+                url = 'ajax_rd4/notify/notifiche.php';
+                container = $('.ajax-notifications');
+
+                loadURL(url, container);
 
 				e.preventDefault();
 			});

@@ -93,24 +93,11 @@ $wg_miei_listini->header = array(
 </div>
 
 <section id="widget-grid" class="margin-top-10">
-
-    <div class="row">
-        <!-- PRIMA COLONNA-->
-        <article class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
-            <?php echo help_render_html('miei_listini',$page_title); ?>
-        </article>
-        <article class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
-            <?php echo $wg_miei_listini->print_html(); ?>
-        </article>
-
-    </div>
-
-    <hr>
-
     <div class="row">
         <!-- PRIMA COLONNA-->
         <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-
+            <?php echo help_render_html('miei_listini',$page_title); ?>
+            <?php echo $wg_miei_listini->print_html(); ?>
         </article>
     </div>
 </section>

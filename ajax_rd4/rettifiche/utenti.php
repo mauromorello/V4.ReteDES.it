@@ -1,5 +1,7 @@
 <?php
 require_once("inc/init.php");
+require_once("../../lib_rd4/class.rd4.ordine.php");
+
 $ui = new SmartUI;
 $converter = new Encryption;
 
@@ -8,12 +10,21 @@ if ($id_ordine==0){
     $id_ordine = CAST_TO_INT($_GET["id"],0);
 }
 
-if($id_ordine==0){echo "missing id"; die();}
+if($id_ordine==0){echo rd4_go_back("KO!");die;}
 
 if (!posso_gestire_ordine($id_ordine)){
-        echo "Non posso farlo..."; die();
+   echo rd4_go_back("Non ho i permessi necessari");die;
 }
 
+$O = new ordine($id_ordine);
+
+if($O->codice_stato=="CO"){
+   echo rd4_go_back("Ordine già convalidato");die;
+}
+
+if(livello_gestire_ordine($O->id_ordini)<2){
+    echo rd4_go_back("Puoi solo gestire la parte del tuo GAS.");die;
+}
 
 $stmt = $db->prepare("SELECT * from retegas_ordini WHERE id_ordini=:id_ordine;");
         $stmt->bindParam(':id_ordine', $id_ordine, PDO::PARAM_INT);
@@ -22,10 +33,9 @@ $stmt = $db->prepare("SELECT * from retegas_ordini WHERE id_ordini=:id_ordine;")
 
 
 $page_title = "Rettifiche Totali Utenti";
-$title_navbar='<i class="fa fa-pencil fa-2x pull-left"></i> Rettifica Totale ordine  #'.$id_ordine.'<br><small class="note">'.$rowo[descrizione_ordini].'</small>';
 
 //PASSO GLI USERS
-        $stmt = $db->prepare("SELECT DISTINCT D.id_utenti, U.fullname, G.descrizione_gas from retegas_dettaglio_ordini D inner join maaking_users U on U.userid=D.id_utenti inner join retegas_gas G on G.id_gas = U.id_gas WHERE id_ordine=:id_ordine");
+        $stmt = $db->prepare("SELECT DISTINCT D.id_utenti, U.fullname, G.descrizione_gas, U.id_gas from retegas_dettaglio_ordini D inner join maaking_users U on U.userid=D.id_utenti inner join retegas_gas G on G.id_gas = U.id_gas WHERE id_ordine=:id_ordine");
         $stmt->bindParam(':id_ordine', $id_ordine, PDO::PARAM_INT);
         $stmt->execute();
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -41,13 +51,16 @@ $title_navbar='<i class="fa fa-pencil fa-2x pull-left"></i> Rettifica Totale ord
                 <tbody>';
 
         foreach ($rows as $row) {
-            $t .= '<tr>';
-            $t .= '<td>'.$row["descrizione_gas"].'</td>';
-            $t .= '<td>'.$row["fullname"].'</td>';
-            $t .= '<td class="text-right font-lg"><span class="totale_attuale" data-id_utente="'.$row["id_utenti"].'">'.number_format(VA_ORDINE_USER($id_ordine,$row["id_utenti"]),4).'</span></td>';
-            //$t .= '<td class="text-right font-lg">'.number_format(VA_ORDINE_USER($id_ordine,$row["id_utenti"]),4).'</td>';
-            $t .= '<td><input class="utenti_values input-bg" data-id_utente="'.$row["id_utenti"].'" type="text" value="" style="width:100px;"> <button data-id_utente="'.$row["id_utenti"].'" class="save_nuovo_valore btn btn-circle btn-success pull-right btn-xs"><i class="fa fa-check"></i></button></td>';
-            $t .= '</tr>';
+
+
+                $t .= '<tr>';
+                $t .= '<td>'.$row["descrizione_gas"].'</td>';
+                $t .= '<td>'.$row["fullname"].'</td>';
+                $t .= '<td class="text-right font-lg"><span class="totale_attuale" data-id_utente="'.$row["id_utenti"].'">'.number_format(VA_ORDINE_USER($id_ordine,$row["id_utenti"]),4).'</span></td>';
+                //$t .= '<td class="text-right font-lg">'.number_format(VA_ORDINE_USER($id_ordine,$row["id_utenti"]),4).'</td>';
+                $t .= '<td><input class="utenti_values input-bg" data-id_utente="'.$row["id_utenti"].'" type="text" value="" style="width:100px;"> <button data-id_utente="'.$row["id_utenti"].'" class="save_nuovo_valore btn btn-circle btn-success pull-right btn-xs"><i class="fa fa-check"></i></button></td>';
+                $t .= '</tr>';
+
         }
 
         $t .= '</tbody>
@@ -61,7 +74,7 @@ $title_navbar='<i class="fa fa-pencil fa-2x pull-left"></i> Rettifica Totale ord
               </tbody>
               </table>';
 ?>
-<?php echo navbar_ordine($id_ordine); ?>
+<?php echo $O->navbar_ordine($id_ordine); ?>
 
 <div class="panel panel-blueLight padding-10" >
     <p class="font-xl">Rettifica il TOTALE di ogni singolo UTENTE:</p>

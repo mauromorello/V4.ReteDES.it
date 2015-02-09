@@ -129,42 +129,29 @@ $notifications = notifications();
 						<!-- AJAX-DROPDOWN : control this dropdown height, look and feel from the LESS variable file -->
 						<div class="ajax-dropdown">
 
-							<!-- the ID links are fetched via AJAX to the ajax container "ajax-notifications" -->
 
-							<div class="btn-group btn-group-justified" data-toggle="buttons">
-                                <label class="btn btn-default">
-                                    <input type="radio" name="activity" id="<?php echo APP_URL; ?>/ajax/notify/tasks.html">
-                                    ORDINI </label>
-                                <label class="btn btn-default">
-									<input type="radio" name="activity" id="<?php echo APP_URL; ?>/ajax/notify/mail.html">
-									UTENTI </label>
-								<label class="btn btn-default">
-									<input type="radio" name="activity" id="<?php echo APP_URL; ?>/ajax/notify/notifications.html">
-									CASSA </label>
+                    <!-- the ID links are fetched via AJAX to the ajax container "ajax-notifications" -->
+                    <div class="btn-group btn-group-justified" data-toggle="buttons">
+                        <label class="btn btn-default">
+                            <input name="activity" id="ajax_rd4/notify/notifiche.php" type="radio">
+                            Le mie notifiche (<?php echo $notifications; ?>)</label>
+                    </div>
 
-							</div>
+                    <!-- notification content -->
+                    <div class="ajax-notifications custom-scroll">
 
-							<!-- notification content -->
-							<div class="ajax-notifications custom-scroll">
+                        <div class="alert alert-transparent">
+                            <h4>Clicca il pulsante per visualizzare le notifiche</h4>
+                        </div>
 
-								<div class="alert alert-transparent">
-									<h4 class="text-center">Hai delle notifiche:</h4>
-                                    <ul class="notification-body">
-									    <li class="text-lg"><i class="fa fa-2x fa-user"></i>&nbsp;  sugli utenti o account: <strong><?php echo notifications_users(); ?></strong> </li>
-                                        <li><i class="fa fa-2x fa-shopping-cart"></i>&nbsp;   sugli ordini: <strong><?php echo notifications_ordini(); ?></strong> </li>
-                                        <li><i class="fa fa-2x fa-bank"></i>&nbsp;   sulla cassa: <strong><?php echo notifications_cassa(); ?></strong> </li>
-                                    </ul>
-                                </div>
+                        <i class="fa fa-lock fa-4x fa-border"></i>
 
-							</div>
-							<!-- end notification content -->
+                    </div>
+                    <!-- end notification content -->
 
-							<!-- footer: refresh area
-							<span> Ultimo aggiornamento: 12/12/2013 9:43AM
-								<button type="button" data-loading-text="<i class='fa fa-refresh fa-spin'></i> Loading..." class="btn btn-xs btn-default pull-right">
-									<i class="fa fa-refresh"></i>
-								</button> </span>
-							<!-- end footer -->
+                    <!-- footer: refresh area -->
+                    <span class="font-xs">Le notifiche scompaiono una volta risolte.</span>
+                    <!-- end footer -->
 
 						</div>
 						<!-- END AJAX-DROPDOWN -->

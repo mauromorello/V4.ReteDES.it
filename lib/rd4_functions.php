@@ -74,25 +74,31 @@ class sec {
 
     function sec($toname, $toemail, $fromname, $fromemail) {
         $this->emailboundary = uniqid(time());
-        $this->to = "{$toname} <".$this->validateEmail($toemail).">";
+        if($toname<>''){
+            $this->to = "{$toname} <".$this->validateEmail($toemail).">";
+        }else{
+            $this->to = '';
+        }
         $email = $this->validateEmail($fromemail);
         $this->emailheader .= "From: reteDES.it <retegas@altervista.org>\r\n";
         $this->emailheader .= "Reply-To: {$fromname} <{$email}>\r\n";
     }
 
     function validateEmail($email) {
-        if (!preg_match('/^[A-Z0-9._%-]+@(?:[A-Z0-9-]+\\.)+[A-Z]{2,4}$/i', $email))
-            die('The Email '.$email.' is not Valid.');
+       // if (!preg_match('/^[A-Z0-9._%-]+@(?:[A-Z0-9-]+\\.)+[A-Z]{2,4}$/i', $email))
+       //     die('The Email '.$email.' is not Valid.');
 
         return $email;
     }
 
     function Cc($email) {
         $this->Cc[] = $this->validateEmail($email);
+
     }
 
     function Bcc($email) {
         $this->Bcc[] = $this->validateEmail($email);
+
     }
 
     function buildHead($type) {
@@ -196,15 +202,84 @@ class sec {
     }
 }
 
-function SEmail($fullnameTO,$emailTO,$fullnameFROM,$emailFROM,$oggetto,$messaggio){
+function SEmail($fullnameTO,$emailTO,$fullnameFROM,$emailFROM,$oggetto,$messaggio,$tag=null){
+
+    $mandrill = new Mandrill(__MANDRILL_APPKEY);
+    $message = array(
+        'html' => $messaggio,
+        'subject' => $oggetto,
+        'from_email' => "info@retedes.it",
+        'from_name' => $fullnameFROM,
+        'to' => array(
+            array(
+                'email' => $emailTO,
+                'name' => $fullnameTO,
+                'type' => 'to'
+            )
+        ),
+        'headers' => array('Reply-To' => $emailFROM),
+        'tags' => array($tag)
+    );
+    $async = false;
+    $ip_pool = '';
+    $send_at = '';
+    $result = $mandrill->messages->send($message, $async, $ip_pool, $send_at);
+    //print_r($result);
+    return true;
+
+    /*
     $sec = new sec($fullnameTO, $emailTO, $fullnameFROM, $emailFROM);
-    $sec->Bcc('retegas.ap@gmail.com');
+    $sec->Bcc('ReteDES.it <retegas.ap@gmail.com>');
     $sec->buildMessage($oggetto, $messaggio);
     if($sec->sendmail()) {
         return true;
     } else {
         return false;
     }
+    */
+
+
+
+
+}
+function SEmailMulti($ArrayTO,$fullnameFROM,$emailFROM,$oggetto,$messaggio,$tag=null){
+
+    //print_r($ArrayTO);
+    //die();
+
+    //require_once('../../lib_rd4/mandrill/src/Mandrill.php');
+    $mandrill = new Mandrill(__MANDRILL_APPKEY);
+    //$mandrill = new Mandrill(__MANDRILL_APPKEY_TEST);
+    $message = array(
+        'html' => $messaggio,
+        'subject' => $oggetto,
+        'from_email' => "info@retedes.it",
+        'from_name' => $fullnameFROM,
+        'to' => $ArrayTO,
+        'headers' => array('Reply-To' => $emailFROM),
+        'tags' => array($tag)
+    );
+    $async = false;
+    $ip_pool = '';
+    $send_at = '';
+    $result = $mandrill->messages->send($message, $async, $ip_pool, $send_at);
+
+    return true;
+
+    //$sec = new sec('ReteDES.it', '<retegas.ap@gmail.com>', $fullnameFROM, $emailFROM);
+    //foreach($ArrayTO AS $emailTO){
+    //    $sec->Bcc($emailTO);
+    //}
+    //$sec->buildMessage($oggetto, $messaggio);
+    //if($sec->sendmail()) {
+    //    return true;
+    //} else {
+    //    return false;
+    //}
+
+
+
+
 }
 
 class Template {
@@ -248,7 +323,22 @@ class Template {
     }
 
     function clean($string){
+        //reject overly long 2 byte sequences, as well as characters above U+10000 and replace with ?
+        $string = preg_replace('/[\x00-\x08\x10\x0B\x0C\x0E-\x19\x7F]'.
+         '|[\x00-\x7F][\x80-\xBF]+'.
+         '|([\xC0\xC1]|[\xF0-\xFF])[\x80-\xBF]*'.
+         '|[\xC2-\xDF]((?![\x80-\xBF])|[\x80-\xBF]{2,})'.
+         '|[\xE0-\xEF](([\x80-\xBF](?![\x80-\xBF]))|(?![\x80-\xBF]{2})|[\x80-\xBF]{3,})/S',
+         '?', $string );
+
+        //reject overly long 3 byte sequences and UTF-16 surrogates and replace with ?
+        $string = preg_replace('/\xE0[\x80-\x9F][\x80-\xBF]'.
+         '|\xED[\xA0-\xBF][\x80-\xBF]/S','?', $string );
+
+
         return htmlentities(trim(strip_tags($string)),ENT_NOQUOTES,'UTF-8');
+
+
     }
 
 
@@ -262,7 +352,18 @@ class Template {
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         //$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         //foreach ($rows as $row) {}
-        return round($row[totale],4);
+        return round($row["totale"],4);
+
+    }
+    function VA_ORDINE_SOLO_NETTO($id_ordine){
+        global $db;
+        $stmt = $db->prepare("SELECT SUM(qta_arr * prz_dett_arr) as totale FROM retegas_dettaglio_ordini WHERE id_ordine=:id_ordine AND LEFT(art_codice,2) <> '@@' AND LEFT(art_codice,2) <> '##'");
+        $stmt->bindParam(':id_ordine', $id_ordine, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        //$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        //foreach ($rows as $row) {}
+        return round($row["totale"],4);
 
     }
     function VA_ORDINE_ESCLUDI_RETT($id_ordine){
@@ -273,7 +374,18 @@ class Template {
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         //$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         //foreach ($rows as $row) {}
-        return round($row[totale],4);
+        return round($row["totale"],4);
+
+    }
+    function VA_ORDINE_ESCLUDI_EXTRA_GAS($id_ordine){
+        global $db;
+        $stmt = $db->prepare("SELECT SUM(qta_arr * prz_dett_arr) as totale FROM retegas_dettaglio_ordini WHERE id_ordine=:id_ordine AND LEFT(art_codice,2) <> '##'");
+        $stmt->bindParam(':id_ordine', $id_ordine, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        //$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        //foreach ($rows as $row) {}
+        return round($row["totale"],4);
 
     }
     function VA_ORDINE_SOLO_RETT($id_ordine){
@@ -284,7 +396,18 @@ class Template {
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         //$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         //foreach ($rows as $row) {}
-        return round($row[totale],4);
+        return round($row["totale"],4);
+
+    }
+    function VA_ORDINE_SOLO_EXTRA_GAS($id_ordine){
+        global $db;
+        $stmt = $db->prepare("SELECT SUM(qta_arr * prz_dett_arr) as totale FROM retegas_dettaglio_ordini WHERE id_ordine=:id_ordine AND LEFT(art_codice,2) = '##'");
+        $stmt->bindParam(':id_ordine', $id_ordine, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        //$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        //foreach ($rows as $row) {}
+        return round($row["totale"],4);
 
     }
 
@@ -295,7 +418,16 @@ class Template {
         $stmt->bindParam(':id_gas', $id_gas, PDO::PARAM_INT);
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return round($row[totale],4);
+        return round($row["totale"],4);
+    }
+    function VA_ORDINE_GAS_SOLO_NETTO($id_ordine,$id_gas){
+        global $db;
+        $stmt = $db->prepare("SELECT SUM(D.qta_arr * D.prz_dett_arr) as totale FROM retegas_dettaglio_ordini D inner join maaking_users U on U.userid=D.id_utenti WHERE D.id_ordine=:id_ordine AND U.id_gas=:id_gas AND LEFT(D.art_codice,2) <> '@@'  AND LEFT(D.art_codice,2) <> '##'");
+        $stmt->bindParam(':id_ordine', $id_ordine, PDO::PARAM_INT);
+        $stmt->bindParam(':id_gas', $id_gas, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return round($row["totale"],4);
     }
     function VA_ORDINE_GAS_ESCLUDI_RETT($id_ordine,$id_gas){
         global $db;
@@ -304,8 +436,86 @@ class Template {
         $stmt->bindParam(':id_gas', $id_gas, PDO::PARAM_INT);
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return round($row[totale],4);
+        return round($row["totale"],4);
     }
+    function VA_ORDINE_GAS_ESCLUDI_EXTRA_GAS($id_ordine,$id_gas){
+        global $db;
+        $stmt = $db->prepare("SELECT SUM(D.qta_arr * D.prz_dett_arr) as totale FROM retegas_dettaglio_ordini D inner join maaking_users U on U.userid=D.id_utenti WHERE D.id_ordine=:id_ordine AND U.id_gas=:id_gas AND LEFT(D.art_codice,2) <> '##'");
+        $stmt->bindParam(':id_ordine', $id_ordine, PDO::PARAM_INT);
+        $stmt->bindParam(':id_gas', $id_gas, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return round($row["totale"],4);
+    }
+    function VA_ORDINE_GAS_SOLO_RETT($id_ordine,$id_gas){
+        global $db;
+        $stmt = $db->prepare("SELECT SUM(D.qta_arr * D.prz_dett_arr) as totale FROM retegas_dettaglio_ordini D inner join maaking_users U on U.userid=D.id_utenti WHERE D.id_ordine=:id_ordine AND U.id_gas=:id_gas AND LEFT(D.art_codice,2) = '@@'");
+        $stmt->bindParam(':id_ordine', $id_ordine, PDO::PARAM_INT);
+        $stmt->bindParam(':id_gas', $id_gas, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return round($row["totale"],4);
+    }
+    function VA_ORDINE_GAS_SOLO_EXTRA_GAS($id_ordine,$id_gas){
+        global $db;
+        $stmt = $db->prepare("SELECT SUM(D.qta_arr * D.prz_dett_arr) as totale FROM retegas_dettaglio_ordini D inner join maaking_users U on U.userid=D.id_utenti WHERE D.id_ordine=:id_ordine AND U.id_gas=:id_gas AND LEFT(D.art_codice,2) = '##'");
+        $stmt->bindParam(':id_ordine', $id_ordine, PDO::PARAM_INT);
+        $stmt->bindParam(':id_gas', $id_gas, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return round($row["totale"],4);
+    }
+    function VA_ORDINE_GAS_SOLO_EXTRA_V2_V3($id_ordine,$id_gas){
+        global $db;
+        $stmt = $db->prepare("SELECT SUM(D.qta_arr * D.prz_dett_arr) as totale FROM retegas_dettaglio_ordini D inner join maaking_users U on U.userid=D.id_utenti WHERE D.id_ordine=:id_ordine AND U.id_gas=:id_gas ");
+        $stmt->bindParam(':id_ordine', $id_ordine, PDO::PARAM_INT);
+        $stmt->bindParam(':id_gas', $id_gas, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $netto_gas = round($row["totale"],4);
+
+        $stmt = $db->prepare("SELECT SUM(D.qta_arr * D.prz_dett_arr) as totale FROM retegas_dettaglio_ordini D inner join maaking_users U on U.userid=D.id_utenti WHERE D.id_ordine=:id_ordine");
+        $stmt->bindParam(':id_ordine', $id_ordine, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $netto_totale = round($row["totale"],4);
+
+        $percentuale_gas = $netto_gas / $netto_totale;
+
+        $stmt = $db->prepare("SELECT costo_trasporto, costo_gestione FROM retegas_ordini  WHERE id_ordini=:id_ordine");
+        $stmt->bindParam(':id_ordine', $id_ordine, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $trasporto_totale = round($row["costo_trasporto"],4);
+        $gestione_totale = round($row["costo_gestione"],4);
+
+        $trasporto_gas = $trasporto_totale * $percentuale_gas;
+        $gestione_gas = $gestione_totale * $percentuale_gas;
+
+        $stmt = $db->prepare("SELECT maggiorazione_referenza, maggiorazione_percentuale_referenza FROM retegas_referenze  WHERE id_ordine_referenze=:id_ordine AND id_gas_referenze=:id_gas;");
+        $stmt->bindParam(':id_ordine', $id_ordine, PDO::PARAM_INT);
+        $stmt->bindParam(':id_gas', $id_gas, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $maggiorazione_referenza = round($row["maggiorazione_referenza"],4);
+        $maggiorazione_percentuale_referenza = round($row["maggiorazione_percentuale_referenza"],4);
+
+        $maggiorazione_gas = $maggiorazione_referenza;
+        $percentuale_gas = ($netto_gas/100) * $maggiorazione_percentuale_referenza;
+
+        //return $id_gas;
+
+        return round(   $trasporto_gas +
+                        $gestione_gas +
+                        $maggiorazione_gas +
+                        $percentuale_gas
+               ,4);
+
+
+
+    }
+
+
     function VA_ORDINE_USER($id_ordine,$id_user){
         global $db;
         $stmt = $db->prepare("SELECT SUM(qta_arr * prz_dett_arr) as totale FROM retegas_dettaglio_ordini WHERE id_ordine=:id_ordine AND id_utenti=:id_user ");
@@ -318,9 +528,57 @@ class Template {
         return round($row[totale],4);
 
     }
+    function VA_ORDINE_USER_SOLO_NETTO($id_ordine,$id_user){
+        global $db;
+        $stmt = $db->prepare("SELECT SUM(qta_arr * prz_dett_arr) as totale FROM retegas_dettaglio_ordini WHERE id_ordine=:id_ordine AND id_utenti=:id_user AND LEFT(art_codice,2) <> '@@' AND LEFT(art_codice,2) <> '##'");
+        $stmt->bindParam(':id_ordine', $id_ordine, PDO::PARAM_INT);
+        $stmt->bindParam(':id_user', $id_user, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        //$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        //foreach ($rows as $row) {}
+        return round($row[totale],4);
+
+    }
     function VA_ORDINE_USER_ESCLUDI_RETT($id_ordine,$id_user){
         global $db;
-        $stmt = $db->prepare("SELECT SUM(qta_arr * prz_dett_arr) as totale FROM retegas_dettaglio_ordini WHERE id_ordine=:id_ordine AND id_utenti=:id_user AND LEFT(art_codice,2) <> '@@' ");
+        $stmt = $db->prepare("SELECT SUM(qta_arr * prz_dett_arr) as totale FROM retegas_dettaglio_ordini WHERE id_ordine=:id_ordine AND id_utenti=:id_user AND LEFT(art_codice,2) <> '@@'");
+        $stmt->bindParam(':id_ordine', $id_ordine, PDO::PARAM_INT);
+        $stmt->bindParam(':id_user', $id_user, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        //$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        //foreach ($rows as $row) {}
+        return round($row[totale],4);
+
+    }
+    function VA_ORDINE_USER_ESCLUDI_EXTRA_GAS($id_ordine,$id_user){
+        global $db;
+        $stmt = $db->prepare("SELECT SUM(qta_arr * prz_dett_arr) as totale FROM retegas_dettaglio_ordini WHERE id_ordine=:id_ordine AND id_utenti=:id_user AND LEFT(art_codice,2) <> '##' ");
+        $stmt->bindParam(':id_ordine', $id_ordine, PDO::PARAM_INT);
+        $stmt->bindParam(':id_user', $id_user, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        //$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        //foreach ($rows as $row) {}
+        return round($row[totale],4);
+
+    }
+    function VA_ORDINE_USER_SOLO_RETTIFICHE($id_ordine,$id_user){
+        global $db;
+        $stmt = $db->prepare("SELECT SUM(qta_arr * prz_dett_arr) as totale FROM retegas_dettaglio_ordini WHERE id_ordine=:id_ordine AND id_utenti=:id_user AND LEFT(art_codice,2) = '@@' ");
+        $stmt->bindParam(':id_ordine', $id_ordine, PDO::PARAM_INT);
+        $stmt->bindParam(':id_user', $id_user, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        //$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        //foreach ($rows as $row) {}
+        return round($row[totale],4);
+
+    }
+    function VA_ORDINE_USER_SOLO_EXTRA_GAS($id_ordine,$id_user){
+        global $db;
+        $stmt = $db->prepare("SELECT SUM(qta_arr * prz_dett_arr) as totale FROM retegas_dettaglio_ordini WHERE id_ordine=:id_ordine AND id_utenti=:id_user AND LEFT(art_codice,2) = '##' ");
         $stmt->bindParam(':id_ordine', $id_ordine, PDO::PARAM_INT);
         $stmt->bindParam(':id_user', $id_user, PDO::PARAM_INT);
         $stmt->execute();

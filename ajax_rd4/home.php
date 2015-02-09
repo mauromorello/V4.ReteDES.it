@@ -1,5 +1,6 @@
 <?php
 require_once("inc/init.php");
+require_once("../lib_rd4/class.rd4.ordine.php");
 $ui = new SmartUI;
 
 $page_title = "Cruscotto";
@@ -69,6 +70,7 @@ $stmt = $db->prepare("SELECT retegas_ordini.id_ordini,
             retegas_ordini.data_chiusura,
             retegas_gas.descrizione_gas,
             retegas_referenze.id_gas_referenze,
+            retegas_referenze.id_utente_referenze,
             maaking_users.userid,
             maaking_users.fullname,
             retegas_ordini.id_utente,
@@ -103,10 +105,17 @@ $no++;
         $secs=$remaining%60;
 
         if ($days<2){
-
             $color = "<span class=\"label label-danger\">SCADE</span>";
         }else{
             $color = "";
+        }
+
+        if($row["id_utente_referenze"]<1){
+            $gestore='MANCA il referente per il tuo GAS';
+            $colge =' text-danger ';
+        }else{
+            $gestore= $row["fullname"].', '.$row["descrizione_gas"];
+            $colge ='';
         }
 
 $oa .=' <li>
@@ -115,13 +124,10 @@ $oa .=' <li>
                 <img src="img_rd4/t_'.$row["id_tipologie"].'_240.png" alt="" class="air air-top-left margin-top-5" width="40" height="40">
                 <span class="from">'.$row["descrizione_ordini"].' <i class="icon-paperclip">'.$color.'</i></span>
                 <time>'.$dd .'<b>'.$hours.'</b> h.</time>
-                <span class="subject">'.$row["fullname"].', '.$row["descrizione_gas"].'</span>
+                <span class=" '.$colge.'">'.$gestore.'</span>
                 <span class="msg-body">'.$row["descrizione_ditte"].', '.$row["descrizione_listini"].'</span>
-
             </a>
             <span class="note pull-left margin-top-10">Non hai ancora partecipato.</span>
-            <span class="pull-right"><a href="javascript:void(0);" class="btn btn-default btn-xs" rel="popover" data-placement="top" data-original-title="Di questo ordine puoi:" data-content="<div class=\'btn-group-vertical btn-xs\'><button type=\'button\' class=\'btn btn-default\'>Eliminare la tua spesa</button><button type=\'button\' class=\'btn btn-default\'>Contattare il referente</button><button type=\'button\' class=\'btn btn-default\'>Altro</button></div>" data-html="true" aria-describedby="popover'.$row["id_ordini"].'"><i class="fa fa-cog"></i> Opzioni</a></span>
-
         </span>
         </li>';
 }
@@ -143,25 +149,42 @@ $wg_oa->header = array(
 );
 
 //ORDINI IO COINVOLTO
-$stmt = $db->prepare("SELECT retegas_ordini.id_ordini,
+/*$stmt = $db->prepare("SELECT retegas_ordini.id_ordini,
             retegas_ordini.descrizione_ordini,
             retegas_listini.descrizione_listini,
             retegas_ditte.descrizione_ditte,
             retegas_ordini.data_chiusura,
             retegas_gas.descrizione_gas,
+            retegas_gas.id_gas,
             retegas_referenze.id_gas_referenze,
             maaking_users.userid,
             maaking_users.fullname,
+            maaking_users.id_gas,
             retegas_ordini.id_utente,
             retegas_ordini.id_listini,
             retegas_ditte.id_ditte,
             retegas_ordini.data_apertura,
             retegas_ordini.is_printable
             FROM (((((retegas_ordini
-            INNER JOIN retegas_referenze ON retegas_ordini.id_ordini = retegas_referenze.id_ordine_referenze) LEFT JOIN maaking_users ON retegas_referenze.id_utente_referenze = maaking_users.userid) INNER JOIN retegas_listini ON retegas_ordini.id_listini = retegas_listini.id_listini) INNER JOIN retegas_ditte ON retegas_listini.id_ditte = retegas_ditte.id_ditte) INNER JOIN maaking_users AS maaking_users_1 ON retegas_ordini.id_utente = maaking_users_1.userid) INNER JOIN retegas_gas ON maaking_users_1.id_gas = retegas_gas.id_gas
+            INNER JOIN retegas_referenze ON retegas_ordini.id_ordini = retegas_referenze.id_ordine_referenze)
+            LEFT JOIN maaking_users ON retegas_referenze.id_utente_referenze = maaking_users.userid)
+            INNER JOIN retegas_listini ON retegas_ordini.id_listini = retegas_listini.id_listini)
+            INNER JOIN retegas_ditte ON retegas_listini.id_ditte = retegas_ditte.id_ditte)
+            INNER JOIN maaking_users AS maaking_users_1 ON retegas_ordini.id_utente = maaking_users_1.userid)
+            INNER JOIN retegas_gas ON maaking_users_1.id_gas = retegas_gas.id_gas
             WHERE ((retegas_referenze.id_gas_referenze)= :id_gas)
-            ORDER BY retegas_ordini.data_apertura DESC;");
-
+            ORDER BY retegas_ordini.data_apertura DESC;"); */
+            $stmt = $db->prepare("SELECT    O.id_ordini,
+                                            O.data_apertura,
+                                            O.data_chiusura,
+                                            O.is_printable,
+                                            O.descrizione_ordini,
+                                            O.id_utente as id_referente,
+                                            R.id_utente_referenze as id_referente_gas
+                                    FROM retegas_referenze R
+                                    INNER JOIN retegas_ordini O on O.id_ordini=R.id_ordine_referenze
+                                  WHERE R.id_gas_referenze=:id_gas and id_utente_referenze>0
+                                  ORDER BY O.data_apertura DESC;");
             $id_gas = _USER_ID_GAS;
             $stmt->bindParam(':id_gas', $id_gas , PDO::PARAM_INT);
             $stmt->execute();
@@ -176,19 +199,14 @@ $stmt = $db->prepare("SELECT retegas_ordini.id_ordini,
                 </form>
                 </div>
                 <ul id="list" style="height:400px;overflow-y:auto" class="list-unstyled">';
+
         foreach($rows as $row){
 
                 $gestore = "";
                 $gestoreGAS = "";
                 $supervisore = "";
                 $partecipante ="";
-
-                $stmt = $db->prepare("select * from retegas_dettaglio_ordini where id_utenti='"._USER_ID."' AND id_ordine=:id_ordine");
-                $stmt->bindParam(':id_ordine', $row["id_ordini"] , PDO::PARAM_INT);
-                $stmt->execute();
-                if($stmt->rowCount()>0){
-                    $partecipante ="Partecipante";
-                }
+                $umile_aiutante ='';
 
                 $apertura = strtotime($row["data_apertura"]);
                 $chiusura = strtotime($row["data_chiusura"]);
@@ -198,35 +216,55 @@ $stmt = $db->prepare("SELECT retegas_ordini.id_ordini,
                 if($chiusura<$today){$color="text-danger";}
                 if($row["is_printable"]>0){$color="text-muted";}
 
-                if($row["id_utente"]==_USER_ID){
-                    $gestore = "Gestore";
-                }else{
-                    $gestore = "";
-                    $stmt = $db->prepare("select * from retegas_referenze where id_utente_referenze='"._USER_ID."' AND id_gas_referenze='"._USER_ID_GAS."' AND id_ordine_referenze=:id_ordine");
-                    $stmt->bindParam(':id_ordine', $row["id_ordini"] , PDO::PARAM_INT);
-                    $stmt->execute();
-                    if($stmt->rowCount()>0){
-                        $gestoreGAS ="Gestore GAS";
-                    }else{
-                        $gestoreGAS ="";
-                        if(_USER_PERMISSIONS & perm::puo_vedere_tutti_ordini){
-                            $supervisore = "Supervisore";
-                        }
 
-                    }
+
+                $stmt = $db->prepare("select * from retegas_dettaglio_ordini where id_utenti='"._USER_ID."' AND id_ordine=:id_ordine");
+                $stmt->bindParam(':id_ordine', $row["id_ordini"] , PDO::PARAM_INT);
+                $stmt->execute();
+
+                if($stmt->rowCount()>0){
+                    $partecipante ='<a href="#ajax_rd4/reports/la_mia_spesa.php?id='.$row["id_ordini"].'""><i class="fa fa-eye"></i></a> Partecipante';
+                }else{
+                    $partecipante ='';
                 }
 
 
 
-                $r .= '<li>
-                    <i class="fa fa-circle '.$color.'"></i>
-                    <span>
-                    #'.$row["id_ordini"].' <a href="#ajax_rd4/ordini/edit.php?id='.$row["id_ordini"].'">'.$row["descrizione_ordini"].'</a><br>
-                    <i class="note">'.$gestore.' '.$partecipante.' '.$gestoreGAS.' '.$supervisore.'</i></span>
+
+                if($row["id_referente"]==_USER_ID){
+                    $gestore = '<a href="#ajax_rd4/ordini/edit.php?id='.$row["id_ordini"].'""><i class="fa fa-gears"></i></a> Gestore';
+                }else{
+                    if($row["id_referente_gas"]==_USER_ID){
+                        $gestoreGAS ='<a href="#ajax_rd4/ordini/edit.php?id='.$row["id_ordini"].'""><i class="fa fa-home"></i></a> Gestore GAS';
+                    }else{
+                        if(_USER_PERMISSIONS & perm::puo_vedere_tutti_ordini){
+                            $supervisore='<a href="#ajax_rd4/ordini/edit.php?id='.$row["id_ordini"].'""><i class="fa fa-star"></i></a> Supervisore';
+                        }
+                    }
+
+                }
 
 
-                 </li>';
+                $stmt = $db->prepare("select * from retegas_options where id_user='"._USER_ID."' AND id_ordine=:id_ordine AND chiave='AIUTO_ORDINI' and valore_int=1");
+                $stmt->bindParam(':id_ordine', $row["id_ordini"] , PDO::PARAM_INT);
+                $stmt->execute();
+                if($stmt->rowCount()>0){
+                    $umile_aiutante ='<a href="#ajax_rd4/ordini/ordine.php?id='.$row["id_ordini"].'""><i class="fa fa-hand-o-up "></i></a> Umile aiutante';
+                }else{
+                    $umile_aiutante ='';
+                }
 
+
+                if($partecipante<>'' | $supervisore<>'' | $gestoreGAS<>'' | $gestore<>'' | $umile_aiutante<>''){
+                    $r .= '<li>
+                        <i class="fa fa-circle '.$color.'"></i>
+                        <span>
+                        #'.$row["id_ordini"].' <a href="#ajax_rd4/ordini/ordine.php?id='.$row["id_ordini"].'">'.$row["descrizione_ordini"].'</a><br>
+                        <i class="note">'.$partecipante.' '.$gestore.' '.$gestoreGAS.' '.$supervisore.' '.$umile_aiutante.'</i></span>
+
+
+                     </li>';
+                }
         }
         $r.="</ul>";
 

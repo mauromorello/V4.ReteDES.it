@@ -296,6 +296,7 @@ if(_USER_PERMISSIONS & perm::puo_creare_listini){
 
 
         //-------------------------HELP
+        document.title = '<?php echo "ReteDES.it :: $page_title";?>';
         <?php echo help_render_js("scheda_fornitore"); ?>
         //-------------------------HELP
         console.log("Start Pagefuncion");

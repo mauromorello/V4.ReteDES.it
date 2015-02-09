@@ -6,8 +6,14 @@ $page = (int)$_GET['page']; // get the requested page
 $limit = (int)$_GET['rows']; // get how many rows we want to have into the grid
 $sidx = $_GET['sidx']; // get index row - i.e. user click to sort
 $sord = $_GET['sord']; // get the direction
-if(!$sidx) $sidx ="codice";
+$hide_disabled = $_GET['s'];
 
+if(!$sidx) $sidx ="codice";
+if(!$hide_disabled){
+    $hide_disabled= false;
+}else{
+    $hide_disabled= true;
+}
 // SE NON E' EDIT
 if(!isset($_POST["oper"])){
     if($_GET['_search']=="true"){
@@ -31,7 +37,13 @@ if(!isset($_POST["oper"])){
             $search .= " AND articoli_opz_3 LIKE :articoli_opz_3 ";
             $articoli_opz_3 = "%".clean($_GET['articoli_opz_3'])."%";
         }
+
     }
+
+    if($hide_disabled){
+            $search .= " AND is_disabled=0 ";
+    }
+
     $stmt = $db->prepare("SELECT COUNT(*) as count FROM  retegas_articoli WHERE id_listini = :id_listino $search LIMIT 1;");
     $stmt->bindParam(':id_listino', $id_listino, PDO::PARAM_INT);
     if($_GET['descrizione_articoli']<>""){$stmt->bindParam(':descrizione_articoli', $descrizione_articoli, PDO::PARAM_STR);}
@@ -82,21 +94,23 @@ if(!isset($_POST["oper"])){
         $responce->rows[$i]['cell']=array(  //$row[id_articoli],
                                             clean($row[codice]),
                                             clean($row[descrizione_articoli]),
-                                            $row[prezzo],
+                                            $row[prezzo]+0,
 
                                             $row[u_misura],
                                             $row[misura],
                                             clean($row[ingombro]),
 
-                                            round($row[qta_scatola]),
-                                            round($row[qta_minima]),
+                                            $row[qta_scatola]+0,
+                                            $row[qta_minima]+0,
 
                                             clean($row[articoli_note]),
 
                                             $row[articoli_unico],
                                             clean($row[articoli_opz_1]),
                                             clean($row[articoli_opz_2]),
-                                            clean($row[articoli_opz_3])
+                                            clean($row[articoli_opz_3]),
+
+                                            $row[is_disabled]     //is disabled
                                             );
                                             //
 
@@ -190,6 +204,8 @@ if(!isset($_POST["oper"])){
         $articoli_opz_3 = trim(strip_tags(CAST_TO_STRING($_POST["articoli_opz_3"])));
         $articoli_note = trim(strip_tags(CAST_TO_STRING($_POST["articoli_note"])));
 
+        $is_disabled = CAST_TO_INT($_POST["is_disabled"],0,1);
+
         $stmt = $db->prepare("UPDATE retegas_articoli SET   codice= :codice,
                                                             descrizione_articoli= :descrizione_articoli,
                                                             prezzo = :prezzo,
@@ -202,7 +218,8 @@ if(!isset($_POST["oper"])){
                                                             articoli_opz_1 = :articoli_opz_1,
                                                             articoli_opz_2 = :articoli_opz_2,
                                                             articoli_opz_3 = :articoli_opz_3,
-                                                            articoli_note = :articoli_note
+                                                            articoli_note = :articoli_note,
+                                                            is_disabled = :is_disabled
                                                             WHERE id_articoli = :id_articoli LIMIT 1;");
         $stmt->bindParam(':id_articoli', $id_articolo, PDO::PARAM_INT);
         $stmt->bindParam(':codice', $codice, PDO::PARAM_STR);
@@ -222,6 +239,8 @@ if(!isset($_POST["oper"])){
         $stmt->bindParam(':articoli_opz_3', $articoli_opz_3, PDO::PARAM_STR);
 
         $stmt->bindParam(':articoli_note', $articoli_note, PDO::PARAM_STR);
+
+        $stmt->bindParam(':is_disabled', $is_disabled, PDO::PARAM_INT);
 
         $stmt->execute();
         if($stmt->rowCount()==1){
@@ -314,6 +333,8 @@ if(!isset($_POST["oper"])){
         $articoli_opz_2 = trim(strip_tags(CAST_TO_STRING($_POST["articoli_opz_2"])));
         $articoli_opz_3 = trim(strip_tags(CAST_TO_STRING($_POST["articoli_opz_3"])));
         $articoli_note = trim(strip_tags(CAST_TO_STRING($_POST["articoli_note"])));
+        $is_disabled = CAST_TO_INT($_POST["is_disabled"],0,1);
+
 
         $sql ="INSERT INTO retegas_articoli  (              id_listini,
                                                             codice,
@@ -328,7 +349,8 @@ if(!isset($_POST["oper"])){
                                                             articoli_opz_1,
                                                             articoli_opz_2,
                                                             articoli_opz_3,
-                                                            articoli_note
+                                                            articoli_note,
+                                                            is_disabled
                                                             )
                                                             VALUES (
                                                             :id_listini,
@@ -344,7 +366,8 @@ if(!isset($_POST["oper"])){
                                                             :articoli_opz_1,
                                                             :articoli_opz_2,
                                                             :articoli_opz_3,
-                                                            :articoli_note
+                                                            :articoli_note,
+                                                            :is_disabled
                                                             );";
 
         $stmt = $db->prepare($sql);
@@ -367,6 +390,8 @@ if(!isset($_POST["oper"])){
         $stmt->bindParam(':articoli_opz_3', $articoli_opz_3, PDO::PARAM_STR);
 
         $stmt->bindParam(':articoli_note', $articoli_note, PDO::PARAM_STR);
+
+        $stmt->bindParam(':is_disabled', $is_disabled, PDO::PARAM_INT);
 
         $stmt->execute();
         $id = $db->lastInsertId();

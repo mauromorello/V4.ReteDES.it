@@ -90,10 +90,17 @@ function rd4_rowCount($sql){
     global $db;
     $result = $db->prepare($sql);
     $result->execute();
-	
-	//return $result->fetchColumn(); 
+
+	//return $result->fetchColumn();
     return $result->rowCount();
     //return count($result->fetchAll());
     //return print_r($result->fetchAll());
+}
+
+function rd4_nf($num, $dec){
+    return number_format($num, $dec, ',', '');
+}
+function rd4_go_back($msg){
+    return '<div class="jumbotron text-center"><i class="fa fa-warning fa-4x"></i><br><h1>'.$msg.'</h1><a class="pull-right btn btn-danger" href="javascript:history.go(-1)">Indietro</a></div>';
 }
 ?>

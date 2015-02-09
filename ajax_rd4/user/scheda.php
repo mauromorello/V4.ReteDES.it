@@ -71,6 +71,55 @@ $wg_scheda_user->header = array(
     "icon" => 'fa fa-user'
     );
 
+
+if(_USER_PERMISSIONS & perm::puo_gestire_utenti){
+    //Elimina utente
+    $id_utente = $row["userid"];
+    $allow_del = true;
+    //Ordini ?
+    $stmt = $db->prepare("SELECT count(*) as conto from retegas_dettaglio_ordini where id_utenti=:id_utente;");
+    $stmt->bindParam(':id_utente', $id_utente, PDO::PARAM_INT);
+    $stmt->execute();
+    $r = $stmt->fetch();
+    if($r["conto"]>0){
+        $allow_del = false;
+    }
+    //Capo di un gas ?
+    $stmt = $db->prepare("SELECT count(*) as conto from retegas_gas where id_referente_gas=:id_utente;");
+    $stmt->bindParam(':id_utente', $id_utente, PDO::PARAM_INT);
+    $stmt->execute();
+    $r = $stmt->fetch();
+    if($r["conto"]>0){
+        $allow_del = false;
+    }
+    //Ha una ditta ?
+    $stmt = $db->prepare("SELECT count(*) as conto from retegas_ditte where id_proponente=:id_utente;");
+    $stmt->bindParam(':id_utente', $id_utente, PDO::PARAM_INT);
+    $stmt->execute();
+    $r = $stmt->fetch();
+    if($r["conto"]>0){
+        $allow_del = false;
+    }
+    //ha gestito ordini ?
+    $stmt = $db->prepare("SELECT count(*) as conto from retegas_referenze where id_utente_referenze=:id_utente;");
+    $stmt->bindParam(':id_utente', $id_utente, PDO::PARAM_INT);
+    $stmt->execute();
+    $r = $stmt->fetch();
+    if($r["conto"]>0){
+        $allow_del = false;
+    }
+    if ($allow_del){
+        $allow_del = '<p class="label">Operazioni <b>EXTRA</b></p>
+                        <label class="toggle">
+                        <input class="delete" type="checkbox" data-userid="'.$useridEnc.'" data-tipo="delete" name="checkbox-toggle">
+                        <i data-swchon-text="SI" data-swchoff-text="NO"></i>Se l\'utente non ha ancora attività si può eliminare
+                    </label>';
+    }
+}
+
+
+
+
 //CASSA
 if($row["user_permission"] & perm::puo_gestire_la_cassa){
     $cassa_checked='checked="CHECKED"';
@@ -236,8 +285,11 @@ $a ='<div class="row">
             </label>
 
         </section>
-
+        <section class="col col-12">'.$allow_del.'</section>
         </form>
+
+
+
         </div>
     </div>';
 
@@ -300,6 +352,38 @@ $wg_scheda_user_amm->header = array(
             }).done(function(data) {
                 if(data.result=="OK"){
                         ok(data.msg);}else{ko(data.msg);}
+            });
+
+
+        });
+        $('.delete').change(function () {
+            if(this.checked) {value = 1;}else{value = 0;}
+            var id = $(this).data('userid');
+            var tipo = $(this).data('tipo');
+            $.SmartMessageBox({
+                title : "Elimini questo utente?",
+                content : "Questa operazione non può essere annullata (a meno che lui si ri-iscriva)",
+                buttons : "[Esci][Elimina]"
+            }, function(ButtonPress, Value) {
+
+                if(ButtonPress=="Elimina"){
+                    $.ajax({
+                          type: "POST",
+                          url: "ajax_rd4/user/_act.php",
+                          dataType: 'json',
+                          data: {act: "del_user", id : id},
+                          context: document.body
+                        }).done(function(data) {
+                            if(data.result=="OK"){
+                                ok(data.msg);
+
+                            }else{
+                                ko(data.msg);
+
+                            ;}
+
+                        });
+                }
             });
 
 

@@ -13,10 +13,18 @@ $stmt->execute();
 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $r=array();
 foreach($rows as $row){
-
-        $r[]=$row;
-
+          $row["descrizione_articoli"] = iconv('UTF-8', 'UTF-8//IGNORE', $row["descrizione_articoli"]);
+          $r[]=$row;
 }
+
+//$stripped_of_invalid_utf8_chars_string = iconv('UTF-8', 'UTF-8//IGNORE', $r);
+//if ($stripped_of_invalid_utf8_chars_string !== $r) {
+    // one or more chars were invalid, and so they were stripped out.
+    // if you need to know where in the string the first stripped character was,
+    // then see http://stackoverflow.com/questions/7475437/find-first-character-that-is-different-between-two-strings
+//}
+//$str = json_encode($stripped_of_invalid_utf8_chars_string);
+
 
 $str =  json_encode($r);
 $str =  str_replace('\u0000', 'false', $str);

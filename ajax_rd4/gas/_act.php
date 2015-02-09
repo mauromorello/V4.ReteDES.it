@@ -240,7 +240,7 @@ if(!empty($_POST["act"])){
 
         $messaggio = $profile->output();
 
-        if(SEmail($fullnameTO,$mailTO,$fullnameFROM,$mailFROM,$oggetto,$messaggio)){
+        if(SEmail($fullnameTO,$mailTO,$fullnameFROM,$mailFROM,$oggetto,$messaggio,"CreatoAccount")){
             $res=array("result"=>"OK", "msg"=>"$fullname inserito in reteDES.<br>Mail inviata." );
             echo json_encode($res);
             die();
@@ -294,7 +294,7 @@ if(!empty($_POST["act"])){
 
                 $messaggio = $profile->output();
 
-                if(SEmail($fullnameTO,$mailTO,$fullnameFROM,$mailFROM,$oggetto,$messaggio)){
+                if(SEmail($fullnameTO,$mailTO,$fullnameFROM,$mailFROM,$oggetto,$messaggio,"AttivazioneUtente")){
                     $res=array("result"=>"OK", "msg"=>"$fullnameTO attivato." );
                 }else{
                     $res=array("result"=>"KO", "msg"=>"Operazione non riuscita" );
@@ -339,6 +339,46 @@ if(!empty($_POST["act"])){
             $res=array("result"=>"KO", "msg"=>"Permessi non abilitati." );
         }
 
+        echo json_encode($res);
+
+    break;
+
+    case "messaggia_utenti":
+        $utenti = $_POST["values"];
+        $messaggio = clean($_POST["messaggio"]);
+
+        foreach ($utenti as $id_utente){
+            $stmt = $db->prepare("SELECT fullname, email FROM maaking_users WHERE userid=:userid");
+            $stmt->bindParam(':userid', $id_utente, PDO::PARAM_INT);
+            $stmt->execute();
+            $row = $stmt->fetch();
+            $n++;
+            $r[]=array( 'email' => $row["email"],
+                        'name' => $row["fullname"],
+                        'type' => 'bcc');
+
+        }
+
+        //MAIL------------------------------------------------
+            $fullnameFROM = _USER_FULLNAME;
+            $mailFROM = _USER_MAIL;
+
+
+            //manda mail di carico credito
+            $oggetto = "[reteDES.it] Messaggio da "._USER_FULLNAME;
+            $profile = new Template('../../email_rd4/basic_2.html');
+
+            $profile->set("fullnameFROM", _USER_FULLNAME );
+            $profile->set("messaggio", $messaggio );
+
+
+            $messaggio = $profile->output();
+
+            SEmailMulti($r,$fullnameFROM,$mailFROM,$oggetto,$messaggio,"MessaggioMultiplo");
+            //MAIL------------------------------------------------
+
+
+        $res=array("result"=>"OK", "msg"=>"Mail inviate a $n utenti" );
         echo json_encode($res);
 
     break;
@@ -389,7 +429,9 @@ if(!empty($_POST["act"])){
         $profile->set("messaggio", $sHTML );
         $messaggio = $profile->output();
 
-        if(SEmail($fullnameTO,$mailTO,$fullnameFROM,$mailFROM,$oggetto,$messaggio)){
+
+        //if(SEmailMulti($ArrayTO,$fullnameFROM,$mailFROM,$oggetto,$messaggio)){
+        if(SEmail($fullnameTO,$mailTO,$fullnameFROM,$mailFROM,$oggetto,$messaggio,"MessaggioPrivato")){
             $res=array("result"=>"OK", "msg"=>"Messaggio a $fullnameTO inviato." );
         }else{
             $res=array("result"=>"KO", "msg"=>"Messaggio NON recapitato" );

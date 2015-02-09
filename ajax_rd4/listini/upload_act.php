@@ -38,6 +38,7 @@ if($_GET["act"]=="check"){
              $qta_minima_zero = 0;
              $qta_minima_sup = 0;
              $multiplo_errato = 0;
+             $is_disabled=0;
 
              $t.='  <table class="table table-bordered table-condensed">
                         <thead>
@@ -56,6 +57,7 @@ if($_GET["act"]=="check"){
                                 <th>O1</th>
                                 <th>O2</th>
                                 <th>O3</th>
+                                <th>D</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -230,6 +232,12 @@ if($_GET["act"]=="check"){
                     $articoli_opz_3 = html_entity_decode((CAST_TO_STRING($value)));
                     $r.='<td>'.$articoli_opz_3.'</td>';
 
+                    //is_disabled
+                    $cell = $worksheet->getCell('N'.$row);
+                    $value= $cell->getValue();
+                    $is_disabled = CAST_TO_INT($value,0,1);
+                    $r.='<td>'.$is_disabled.'</td>';
+
                     if($errore_riga>0){
                         $riga_sbagliata++;
                         $t.='<tr><td><i class="fa fa-times text-danger"></i></td>'.$r.'</tr>
@@ -253,7 +261,8 @@ if($_GET["act"]=="check"){
                                                                             articoli_opz_1,
                                                                             articoli_opz_2,
                                                                             articoli_opz_3,
-                                                                            articoli_note
+                                                                            articoli_note,
+                                                                            is_disabled
                                                                             )
                                                                             VALUES (
                                                                             :id_listini,
@@ -269,7 +278,8 @@ if($_GET["act"]=="check"){
                                                                             :articoli_opz_1,
                                                                             :articoli_opz_2,
                                                                             :articoli_opz_3,
-                                                                            :articoli_note
+                                                                            :articoli_note,
+                                                                            :is_disabled
                                                                             );";
 
 
@@ -293,6 +303,8 @@ if($_GET["act"]=="check"){
                         $stmt->bindParam(':articoli_opz_3', $articoli_opz_3, PDO::PARAM_STR);
 
                         $stmt->bindParam(':articoli_note', $articoli_note, PDO::PARAM_STR);
+
+                        $stmt->bindParam(':is_disabled', $is_disabled, PDO::PARAM_INT);
 
                         $stmt->execute();
                         if($stmt->rowCount()==1){

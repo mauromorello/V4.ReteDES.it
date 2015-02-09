@@ -48,8 +48,6 @@ if (($rowU["valore_int"]<>1) OR ($force)){
 
 
 }
-
-
 function help_render_js($id_help){
     global $db;
     $stmt = $db->prepare( "SELECT valore_int from retegas_options WHERE valore_text='$id_help' AND chiave='_HELP_V4_HIDE' AND id_user='"._USER_ID."' LIMIT 1;" );
@@ -131,13 +129,21 @@ function src_user($id_utente=0,$res=64){
 
     $found=false;
 
+
     if(file_exists("../../public_rd4/users/".$id_utente."_$res.jpg")){
 
         $dumb = date ("His", filemtime("../../public_rd4/users/".$id_utente."_$res.jpg"));
         $src = USER_IMG_URL.$id_utente."_$res.jpg?d=".$dumb;
         $found=true;
     }else{
-        $src = USER_IMG_URL."0_240.png";
+        if(file_exists("../public_rd4/users/".$id_utente."_$res.jpg")){
+
+        $dumb = date ("His", filemtime("../public_rd4/users/".$id_utente."_$res.jpg"));
+        $src = USER_IMG_URL.$id_utente."_$res.jpg?d=".$dumb;
+        $found=true;
+        }else{
+            $src = USER_IMG_URL."0_240.png";
+        }
     }
     if(!$found){
         if(file_exists("../public_rd4/users/".$id_utente."_$res.jpg")){
@@ -158,6 +164,20 @@ function src_user($id_utente=0,$res=64){
     }
 
     return $src;
+}
+function navbar_report($title,$buttons_right){
+
+$n.= '
+<span class="font-xl pull-left" style="margin-top:-30px;">'.$title.'</span>
+<div class="pull-right btn-group" style="margin-top:-30px;">
+      ';
+
+foreach($buttons_right as $button){$n.= $button;}
+$n.='</div>
+    <div class="clearfix"></div>
+    <p></p>';
+
+return $n;
 }
 function navbar($title="Senza titolo",$buttons_right=null,$buttons_left=null){
 
@@ -199,194 +219,156 @@ $n.='                        </ul>
 return $n;
 
 }
-function navbar_ordine($id_ordine,$buttons_right=null){
-    global $db;
-    $stmt = $db->prepare("SELECT    O.id_ordini,
-                                O.id_listini,
-                                O.descrizione_ordini,
-                                O.note_ordini,
-                                O.is_printable,
-                                O.costo_gestione,
-                                O.costo_trasporto,
-                                O.mail_level,
-                                DATE_FORMAT(O.data_apertura,'%d/%m/%Y %H:%i') as data_apertura,
-                                DATE_FORMAT(O.data_chiusura,'%d/%m/%Y %H:%i') as data_chiusura,
-                                O.id_stato,
-                                U.fullname,
-                                L.descrizione_listini,
-                                D.descrizione_ditte,
-                                D.id_ditte
-                        FROM retegas_ordini O
-                            inner join maaking_users U on U.userid=O.id_utente
-                            inner join retegas_listini L on L.id_listini=O.id_listini
-                            inner join retegas_ditte D on D.id_ditte=L.id_ditte
-                        WHERE id_ordini=:id LIMIT 1;");
-$stmt->bindValue(':id', $id_ordine, PDO::PARAM_INT);
-$stmt->execute();
-$rowo = $stmt->fetch(PDO::FETCH_ASSOC);
 
-if($rowo["note_ordini"]<>""){
-    $note_1 ='<button type="button" class=" btn btn-link" data-toggle="collapse" data-target="#note_ordini">Note <i class="fa fa-arrow-down"></i></button>';
-    $note_2 ='<div id="note_ordini" class="collapse out">'.$rowo["note_ordini"].'</div>';
+
+function pdf_css(){
+
+    return '<style type="text/css">
+
+                html, body, div, span, applet, object, iframe,
+                h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+                a, abbr, acronym, address, big, cite, code,
+                del, dfn, em, img, ins, kbd, q, s, samp,
+                small, strike, strong, sub, sup, tt, var,
+                b, u, i, center,
+                dl, dt, dd, ol, ul, li,
+                fieldset, form, label, legend,
+                table, caption, tbody, tfoot, thead, tr, th, td,
+                article, aside, canvas, details, embed,
+                figure, figcaption, footer, header, hgroup,
+                menu, nav, output, ruby, section, summary,
+                time, mark, audio, video {
+                    margin: 0;
+                    padding: 0;
+                    border: 0;
+                    font-size: 100%;
+                    vertical-align: baseline;
+                }
+                /* HTML5 display-role reset for older browsers */
+                article, aside, details, figcaption, figure,
+                footer, header, hgroup, menu, nav, section {
+                    display: block;
+                }
+
+                ol, ul {
+                    list-style: none;
+                }
+                table {
+                    border-collapse: collapse;
+                    border-spacing: 0;
+                }
+                @page {
+                    margin: 10px;
+                  }
+                body {
+                    line-height: 1;
+                    padding:12px;
+                }
+                .note {font-size:10px;}
+
+            </style>';
+}
+function pdf_testata($O,$orientation){
+if($orientation=="landscape"){
+    $w = 1024;
 }else{
-    $note_1 ='';
-    $note_2 ='';
+    $w = 720;
 }
+$t ='
+<table class="rd4_h" style="width:'.$w.'px; margin-left: auto; margin-right: auto">
+  <tr>
+    <th style="text-align:left;" ><img src="../../img_rd4/logo_rd4.jpg" style="width:180px;"></th>
+    <th style=""></th>
+    <th style="text-align:right;font-size:11px;">ReteDES.it<br>'.$O->descrizione_gas_referente.'</th>
+  </tr>
+  <tr>
+    <td colspan="3" style="text-align:right;font-size:11px;">Ordine '.$O->descrizione_ordini.' di '.$O->fullname_referente.'</td>
+  </tr>
+  <tr>
+    <td colspan="3" style="px;text-align:right;font-size:11px;">Ditta '.$O->descrizione_ditte.'</td>
+  </tr>
+</table>';
 
-$n='<div class="panel no-content-padding padding-10" >
-    <span class="pull-right align-right text-right">
-        <p class="font-lg"><b class="label label-danger">CHIUSO</b></p>
-        <p class="margin-top-10 font-lg"><b class="label label-success">'.VA_ORDINE_USER($id_ordine,_USER_ID).' €</b></p>
-        <div class="btn-group margin-top-10">
-        <a href="#ajax_rd4/ordini/ordine.php?id='.$id_ordine.'" type="button" class="btn btn-default">
-            <i class="fa fa-shopping-cart"></i>
-        </a>
-        <a type="button" class="btn btn-default">
-            <i class="fa fa-eye"></i>
-        </a>
-        <a type="button" class="btn btn-default">
-            <i class="fa fa-hand-o-right"></i>
-        </a>
-        <div class="btn-group">
-                            <button class="btn btn-default dropdown-toggle" data-toggle="dropdown">
-                                <i class="fa fa-cogs"></i> &nbsp; <span class="caret"></span>
-                            </button>
-                            <ul class="dropdown-menu">
-                                <li>
-                                    <a href="#ajax_rd4/ordini/edit.php?id='.$id_ordine.'">Edita</a>
-                                </li>
-                                <li class="divider"></li>
-                                <li>
-                                    <a href="#ajax_rd4/rettifiche/start.php?id='.$id_ordine.'" class="text-center"><strong>Rettifiche:</strong></a>
-                                </li>
-                                <li>
-                                    <a href="#ajax_rd4/rettifiche/totale.php?id='.$id_ordine.'">Totale Ordine</a>
-                                </li>
-                                <li>
-                                    <a href="#ajax_rd4/rettifiche/utenti.php?id='.$id_ordine.'">Totale Utenti</a>
-                                </li>
-                                <li>
-                                    <a href="#ajax_rd4/rettifiche/dettaglio.php?id='.$id_ordine.'">Dettagli</a>
-                                </li>
-                                <li>
-                                    <a href="#ajax_rd4/rettifiche/articoli.php?id='.$id_ordine.'">Articoli</a>
-                                </li>
-                                <li>
-                                    <a href="#ajax_rd4/rettifiche/altro.php?id='.$id_ordine.'">Aggiunte</a>
-                                </li>
-                                <li>
-                                    <a href="#ajax_rd4/rettifiche/sconti.php?id='.$id_ordine.'">Maggiorazioni</a>
-                                </li>
-                                <li class="divider"></li>
-                                <li>
-                                    <a href="javascript:void(0);">Comunica</a>
-                                </li>
-                            </ul>
-                        </div>
-        <a type="button" class="btn btn-default">
-            <i class="fa fa-envelope"></i>
-        </a>
-
-    </div>
-    </span>
-    <div class="padding-10">
-    <p class="font-lg"><i class="fa fa-shopping-cart"></i> <b class="note">'.$id_ordine.'</b> '.$rowo["descrizione_ordini"].'</p>
-    <p class="font-md"><i class="fa fa-truck"></i> '.$rowo["descrizione_ditte"].', <i class="fa fa-cubes"></i> '.$rowo["descrizione_listini"].'</p>
-
-
-
-
-    <p class="font-sm"><i class="fa fa-user"></i> Di '.$rowo["fullname"].', <i class="fa fa-home"></i> GAS ajskdja ksdk </p>
-    '.$note_1.'
-    <div class="clearfix"></div>
-    '.$note_2.'
-    </div>
-</div>
-<hr>
-';
-
-return $n;
+return $t;
 
 }
-function schedina_ordine($id_ordine){
-global $db;
-if (posso_gestire_ordine($id_ordine)){
-    $gestore=true;
-    $link_gestore = '<a href="#ajax_rd4/ordini/edit.php?id='.$id_ordine.'"><i class="fa fa-gears"></i></a>';
+function css_report($orientation){
+
+if($orientation=="landscape"){
+    $w = 1024;
 }else{
-    $gestore=false;
-    $link_gestore =='';
+    $w = 720;
 }
-$stmt = $db->prepare("SELECT    O.id_ordini,
-                                O.id_listini,
-                                O.descrizione_ordini,
-                                O.note_ordini,
-                                O.is_printable,
-                                O.costo_gestione,
-                                O.costo_trasporto,
-                                O.mail_level,
-                                DATE_FORMAT(O.data_apertura,'%d/%m/%Y %H:%i') as data_apertura,
-                                DATE_FORMAT(O.data_chiusura,'%d/%m/%Y %H:%i') as data_chiusura,
-                                O.id_stato,
-                                U.fullname,
-                                L.descrizione_listini,
-                                D.descrizione_ditte,
-                                D.id_ditte
-                        FROM retegas_ordini O
-                            inner join maaking_users U on U.userid=O.id_utente
-                            inner join retegas_listini L on L.id_listini=O.id_listini
-                            inner join retegas_ditte D on D.id_ditte=L.id_ditte
-                        WHERE id_ordini=:id LIMIT 1;");
-$stmt->bindValue(':id', $id_ordine, PDO::PARAM_INT);
-$stmt->execute();
-$rowo = $stmt->fetch(PDO::FETCH_ASSOC);
 
-$o='
-        <div class="row">
-            <div class="col-md-4">
-                <div class="well well-sm">
-                    <p class="font-lg">'.$link_gestore.'  '.$rowo["descrizione_ordini"].'</p>
-                    <p><a href="#ajax_rd4/fornitori/scheda.php?id='.$rowo["id_ditte"].'"><i class="fa fa-truck"></i></a>  '.$rowo["descrizione_ditte"].'</p>
-                    <p><a href="#ajax_rd4/listini/listino.php?id='.$rowo["id_listini"].'"><i class="fa fa-cubes"></i></a>  '.$rowo["descrizione_listini"].'</p>
-                    <hr>
-                    <p>Apre: '.$rowo["data_apertura"].'</p>
-                    <p>Chiude: '.$rowo["data_chiusura"].'</p>
-                    <p>Consegna:  ---</p>
-                    <p>Luogo: </p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="well well-sm">
-                <p>
-                <label>Referente ordine: </label><br>
-                <i class="fa fa-envelope"></i> Tizio Caio (GAS Borgomanero)
-                </p>
-                <p>
-                <label>Referente tuo gas:</label><br>
-                <i class="fa fa-envelope"></i> Marco Pisellonio
-                </p>
-                <p>
-                <label>Tua Spesa:</label><br>
-                <span class="font-xl">14.52 Eu.</span>
-                </p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="well well-sm">
-                    <label>Report</label><br>
-                            <button class="btn btn-default btn-block">LA MIA SPESA</button>
-                            <button class="btn btn-default btn-block">DETTAGLIO AMICI</button>
-                            <button class="btn btn-default btn-block">TOTALE AMICI</button>
-                            <a href="#ajax_rd4/ordini/report.php?id='.$id_ordine.'" class="btn btn-default btn-block">PANNELLO REPORT</a>
-                    <hr>
-                    <label>Aiuti</label><br>
-                            <button class="btn btn-default btn-block">OFFRI AIUTO</button>
-                            <button class="btn btn-default btn-block">DIVENTA REFERENTE</button>
-                    <hr>
-                </div>
-            </div>
-        </div>
-    ';
-return $o;
+return '<style type="text/css">
 
+table.rd4, table.rd4_h {
+  width:'.$w.'px;
+  margin-top:20px;
+  background-color:#FFF;
 }
+
+.row_beige{
+    background-color:#FF0000;
+}
+.row_blue{
+    background-color:#0000FF;
+}
+table.rd4 td, table.rd4 th{
+  border: 1px solid #CCC;
+  padding: 0.25rem;
+}
+table.rd4_h td, table.rd4_h th{
+  border: 0;
+  padding: 0.1rem;
+}
+.text-right {text-align: right;}
+.text-left {text-align: left;}
+.text-center {text-align: center;}
+.intestazione {background-color:#FFF; border:0; padding-bottom:4px; border-bottom:2px solid #444;}
+.totale {background-color:#CCFFFF; border-top:2px solid #444; padding-top:4px;}
+.odd {background-color:#FFFFFF;}
+.even {background-color:#FAF0E0;}
+.costo {background-color:#FFB933;}
+.subtotale {background-color:#C0FFC0; border-bottom:3px solid #444; padding-bottom:4px;}
+.separator {line-height:10px; border-bottom:3px solid #444}
+.utente {background-color:#C0C0FF; border-top:3px solid #444; padding-top:4px;}
+</style>';
+}
+
+function render_notifica($user_id_from, $tipo, $titolo, $msg, $link){
+
+    if(file_exists("../../lib_rd4/class.rd4.user.php")){require_once("../../lib_rd4/class.rd4.user.php");}
+    if(file_exists("../lib_rd4/class.rd4.user.php")){require_once("../lib_rd4/class.rd4.user.php");}
+    if(file_exists("lib_rd4/class.rd4.user.php")){require_once("lib_rd4/class.rd4.user.php");}
+
+      global $db;
+
+      switch ($tipo){
+          case "LISTINI":
+            $tipo = '<span class="label label-info pull-right font-xs">LISTINI</span>';
+          break;
+          case "PRENOTAZIONE_CARICO":
+            $tipo = '<span class="label label-danger pull-right font-xs">CASSA</span>';
+          break;
+      }
+
+      $U = new user($user_id_from);
+      $gas = $U->descrizione_gas;
+      $fullname = $U->fullname;
+      unset($U);
+
+      return '<li>
+                    <span class="">
+                        <a href="'.$link.'" class="msg">
+                            '.$tipo.'
+                            <img src="'.src_user($user_id_from,64).'" alt="" class="air air-top-left margin-top-5" width="40" height="40" />
+                            <span class="from">'.$fullname.' <i class="icon-paperclip font-xs note">'.$gas.'</i></span>
+
+                            <span class="subject">'.$titolo.'</span>
+                            <span class="msg-body">'.$msg.'</span>
+                        </a>
+                    </span>
+                </li>';
+
+  }

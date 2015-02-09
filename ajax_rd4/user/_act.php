@@ -7,6 +7,28 @@ switch ($_POST["act"]) {
     /* -------------------------PERMESSi SUPERPOTERI
     */
 
+    case "del_user":
+        if(_USER_PERMISSIONS & perm::puo_gestire_utenti){
+            $id_utente = CAST_TO_INT($converter->decode($_POST['id']),0);
+            if($id_utente==0){
+                $res= array("result"=>"KO", "msg"=>"KO"); echo json_encode($res);die();
+            }else{
+                $stmt = $db->prepare("DELETE from maaking_users WHERE userid=:id_utente LIMIT 1;");
+                $stmt->bindParam(':id_utente', $id_utente, PDO::PARAM_INT);
+                $stmt->execute();
+                if($stmt->rowCount()==1){
+                    $res= array("result"=>"OK", "msg"=>"Utente eliminato"); echo json_encode($res);die();
+                    //Da chiamare CleanDB;
+                }else{
+                    $res= array("result"=>"KO", "msg"=>"KO, errore"); echo json_encode($res);die();
+                }
+            }
+        }else{
+            $res= array("result"=>"KO", "msg"=>"KO, non hai i permessi"); echo json_encode($res);die();
+        }
+
+
+    break;
     case "save_pwd_user":
 
     $old_password = clean($_POST["acc_oldpwd"]);
@@ -690,6 +712,43 @@ switch ($_POST["act"]) {
     if($stmt->rowCount()==1){
         $last_id = $db->lastInsertId();
         $res=array("result"=>"OK", "msg"=>"Prenotazione aggiunta", "html"=>"<div class=\"well well-sm margin-top-5 pren_box\">Pochi istanti fa,  <span class=\"badge bg-color-greenLight font-md\">&euro; ".round($_POST["euro"],2)."</span> ".$_POST["documento"]." - ".$_POST["note"]."; <button class=\"btn btn-danger btn-xs elimina_mov pull-right\" rel=\"".$last_id."\"><i class=\"fa fa-trash-o\"></i> <span class=\"hidden-xs\">Elimina</span></button><div class=\"clearfix\"></div></div>" );
+
+        if(_GAS_CASSA_BONIFICO_AUTOMATICO){
+            $sql = "INSERT INTO retegas_cassa_utenti (   id_utente ,
+                                                                id_gas,
+                                                                importo ,
+                                                                segno ,
+                                                                tipo_movimento ,
+                                                                descrizione_movimento ,
+                                                                data_movimento ,
+                                                                id_cassiere ,
+                                                                registrato ,
+                                                                data_registrato ,
+                                                                contabilizzato ,
+                                                                data_contabilizzato,
+                                                                numero_documento
+                                                              )VALUES(
+                                                              '"._USER_ID."',
+                                                              '"._USER_ID_GAS."',
+                                                              :importo,
+                                                              '+',
+                                                              '1',
+                                                              :descrizione,
+                                                              NOW(),
+                                                              '"._USER_ID."',
+                                                              'si',
+                                                              NOW(),
+                                                              'no',
+                                                              NULL,
+                                                              :documento
+                                                              )";
+                        $stmt = $db->prepare($sql);
+                        $stmt->bindParam(':documento', $_POST['documento'], PDO::PARAM_STR);
+                        $stmt->bindParam(':descrizione', $_POST['note'], PDO::PARAM_STR);
+                        $stmt->bindParam(':importo', $_POST['euro'], PDO::PARAM_STR);
+                        $stmt->execute();
+        }
+
 
     }else{
         $res=array("result"=>"KO", "msg"=>"Errore." );

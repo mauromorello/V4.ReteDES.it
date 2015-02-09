@@ -1,5 +1,5 @@
 <?php
-  function posso_gestire_ordine($id_ordine){
+function posso_gestire_ordine($id_ordine){
     global $db;
 
     $stmt = $db->prepare("SELECT U.id_gas, O.id_utente FROM retegas_ordini O inner join maaking_users U on U.userid=O.id_utente WHERE id_ordini=:id LIMIT 1;");
@@ -28,6 +28,19 @@
 
     }
 
+    $stmt = $db->prepare("SELECT * FROM retegas_referenze WHERE
+                            id_ordine_referenze = :id
+                            AND
+                            id_utente_referenze = '"._USER_ID."'"
+                            );
+    $stmt->bindValue(':id', $id_ordine, PDO::PARAM_INT);
+    $stmt->execute();
+    if ($stmt->rowCount()>0){
+        //sono un referente gas
+        return true;
+        die();
+    }
+
     $stmt = $db->prepare("SELECT * FROM retegas_options WHERE
                             id_ordine = :id
                             AND
@@ -44,7 +57,90 @@
 
   return false;
   }
+function livello_gestire_ordine($id_ordine){
+    global $db;
 
+    $stmt = $db->prepare("SELECT U.id_gas, O.id_utente FROM retegas_ordini O inner join maaking_users U on U.userid=O.id_utente WHERE id_ordini=:id LIMIT 1;");
+    $stmt->bindValue(':id', $id_ordine, PDO::PARAM_INT);
+    $stmt->execute();
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($stmt->rowCount()<>1){
+        // ordine inesistente
+        return 0;
+        die();
+    }
+
+    if($row["id_utente"]==_USER_ID){
+        //sono il gestore
+        return 3;
+        die();
+    }
+
+    if($row["id_gas"]==_USER_ID_GAS){
+        //sono del gas
+        if(_USER_PERMISSIONS & perm::puo_vedere_tutti_ordini){
+            //e posso vedere tutti gli ordini
+            return 4;
+            die();
+        }
+
+    }
+
+    $stmt = $db->prepare("SELECT * FROM retegas_referenze WHERE
+                            id_ordine_referenze = :id
+                            AND
+                            id_utente_referenze = '"._USER_ID."'");
+    $stmt->bindValue(':id', $id_ordine, PDO::PARAM_INT);
+    $stmt->execute();
+    if ($stmt->rowCount()>0){
+        //sono un referente gas
+        return 1;
+        die();
+    }
+
+    $stmt = $db->prepare("SELECT * FROM retegas_options WHERE
+                            id_ordine = :id
+                            AND
+                            id_user = '"._USER_ID."'
+                            AND
+                            chiave = '_REFERENTE_EXTRA';");
+    $stmt->bindValue(':id', $id_ordine, PDO::PARAM_INT);
+    $stmt->execute();
+    if ($stmt->rowCount()>0){
+        //sono un referente extra
+        return 2;
+        die();
+    }
+
+  return 0;
+  }
+function posso_gestire_listino($id_listino){
+    global $db;
+    $stmt = $db->prepare("SELECT * FROM retegas_listini WHERE id_listini=:id AND id_utenti='"._USER_ID."';");
+    $stmt->bindValue(':id', $id_listino, PDO::PARAM_INT);
+    $stmt->execute();
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($stmt->rowCount()<>1){
+        // non sono il proprietario
+        // Cerco tra gli extra
+        $stmt = $db->prepare("SELECT * FROM retegas_options WHERE id_listino=:id AND id_user='"._USER_ID."' AND chiave='_AIUTO_GESTIONE_LISTINO' AND valore_int=1;");
+        $stmt->bindValue(':id', $id_listino, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($stmt->rowCount()<>1){
+            return false;
+            die();
+        }else{
+            return true;
+            die();
+        }
+    }else{
+        //Sono il proprietario
+        return true;
+        die();
+    }
+
+}
 function rettifica_amici($key,$nq){
 
     global $db;
@@ -123,5 +219,6 @@ function rettifica_amici($key,$nq){
     //echo $l;
     return;
 }
+
 
 ?>

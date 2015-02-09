@@ -1,5 +1,6 @@
 <?php
 require_once("inc/init.php");
+require_once("../../lib_rd4/class.rd4.ordine.php");
 $ui = new SmartUI;
 $converter = new Encryption;
 
@@ -8,12 +9,21 @@ if ($id_ordine==0){
     $id_ordine = CAST_TO_INT($_GET["id"],0);
 }
 
-if($id_ordine==0){echo "missing id"; die();}
+if($id_ordine==0){echo rd4_go_back("KO!");die;}
 
 if (!posso_gestire_ordine($id_ordine)){
-        echo "Non posso farlo..."; die();
+    echo rd4_go_back("Non ho i permessi necessari");die;
 }
-
+$O=new ordine($id_ordine);
+if($O->codice_stato=="CO"){
+    //echo '<div class="jumbotron text-center"><i class="fa fa-frown-o fa-3x"></i><h1>Ordine già convalidato.</h1><a class="pull-right btn btn-danger" href="javascript:history.go(-1)">Indietro</a></div>';
+    //die;
+    $msg_conv='<div class="alert alert-danger"><strong>N.B:</strong> Questo ordine è già stato convalidato, potrai fare solo rettifiche che riguardano il tuo GAS.</div>';
+    $show=false;
+}else{
+    $show=true;
+    $msg_conv='';
+}
 
 $stmt = $db->prepare("SELECT * from retegas_ordini WHERE id_ordini=:id_ordine;");
         $stmt->bindParam(':id_ordine', $id_ordine, PDO::PARAM_INT);
@@ -25,21 +35,14 @@ $page_title = "Aggiunte e detrazioni";
 
 
 ?>
-<?php echo navbar_ordine($id_ordine); ?>
-
+<?php echo $O->navbar_ordine(); ?>
+<?php echo $msg_conv; ?>
 <div class="panel panel-blueLight padding-10">
     <p class="font-xl">Aggiungi o sottrai degli importi all'ordine:</p>
     <div class="row">
 
         <div class="col-xs-4 ">
             <div class="well well-lg boxino_riepilogo">
-                <p>Totale ordine attuale:</p>
-                <h1  class="font-xl  text-success text-right"><strong id="show_totale_ordine_aggiunta"><?php echo VA_ORDINE($id_ordine) ?></strong> €</h1>
-                <p>Netto articoli:</p>
-                <h1  class="font-lg  text-success text-right"><strong id="show_totale_ordine_aggiunta_articoli"><?php echo VA_ORDINE_ESCLUDI_RETT($id_ordine) ?></strong> €</h1>
-                <p>Rettifiche:</p>
-                <h1  class="font-lg  text-danger text-right"><strong id="show_totale_ordine_aggiunta_rettifiche"><?php echo VA_ORDINE_SOLO_RETT($id_ordine) ?></strong> €</h1>
-
             </div>
         </div>
         <div class="col-xs-8">
@@ -66,9 +69,9 @@ $page_title = "Aggiunte e detrazioni";
                                 <label class="radio">
                                     <input type="radio" name="tipo" value="2" >
                                     <i></i>Ripartisci l'importo equamente tra gli utenti.</label>
-                                <label class="radio">
+                                <!--<label class="radio">
                                     <input type="radio" name="tipo" value="3" disabled="disabled" >
-                                    <i></i>Dividi in proporzione al campo "note brevi" (vedi help)</label>
+                                    <i></i>Dividi in proporzione al campo "note brevi" (vedi help)</label>-->
                             </div>
                         </div>
                         <div class="note">
@@ -95,7 +98,7 @@ $page_title = "Aggiunte e detrazioni";
                         <label class="label">Chi è coinvolto ?</label>
                         <label class="select">
                             <select id="select_coinvolto_aggiunta" name="select_coinvolto_aggiunta">
-                                <option value="1" selected>Tutti gli utenti partecipanti a questo ordine</option>
+                                <?php if((livello_gestire_ordine($id_ordine)>1) and $show){ ?><option value="1" selected>Tutti gli utenti partecipanti a questo ordine</option><?php } ?>
                                 <option value="2">Solo utenti partecipanti a questo ordine del tuo GAS</option>
                             </select> <i></i> </label>
                         <div class="note">
@@ -212,7 +215,17 @@ $page_title = "Aggiunte e detrazioni";
             }
         });
 
-
+        $.ajax({
+              type: "POST",
+              url: "ajax_rd4/rettifiche/_act.php",
+              dataType: 'json',
+              data: {act: "schedina riepilogo", id_ordine : <?php echo $id_ordine ?>},
+              context: document.body
+            }).done(function(data) {
+                if(data.result=="OK"){
+                        $('.boxino_riepilogo').html(data.msg);
+                }
+            });
     } // end pagefunction
 
 loadScript("js/plugin/jquery-form/jquery-form.min.js", pagefunction);

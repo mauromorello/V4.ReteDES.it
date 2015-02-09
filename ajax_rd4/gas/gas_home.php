@@ -21,23 +21,12 @@ $g.= '      <label>Ragione sociale</label><p>'.$row["nome_gas"].'</p>
         </div>
         <div class="col-xs-5 ">
             <div class="well well-sm">
-                <div id="map_gas" style="width:100%;height:160px;">
+                <div id="map_gas" style="width:100%;height:320px;">
                 </div>
             </div>
         </div>
         </div>';
 
-$options = array(   "editbutton" => false,
-                    "fullscreenbutton"=>true,
-                    "deletebutton"=>false,
-                    "colorbutton"=>true);
-$wg_schedagas = $ui->create_widget($options);
-$wg_schedagas->id = "wg_schedagas";
-$wg_schedagas->body = array("content" => $g,"class" => "");
-$wg_schedagas->header = array(
-    "title" => '<h2>Scheda</h2>',
-    "icon" => 'fa fa-home'
-    );
 
 if(_USER_GAS_USA_CASSA){
     $gas_usa_cassa = ' CHECKED="CHECKED" ';
@@ -98,7 +87,10 @@ $op='<div class="row">
         <hr />
         </form>
         </div>';
-
+$options = array(   "editbutton" => false,
+                    "fullscreenbutton"=>false,
+                    "deletebutton"=>false,
+                    "colorbutton"=>true);
 $wg_gasopt = $ui->create_widget($options);
 $wg_gasopt->id = "wg_optiongas";
 $wg_gasopt->body = array("content" => $op,"class" => "");
@@ -190,6 +182,10 @@ $geo_users = rtrim($geo_users,", ");
 <div class="inbox-nav-bar no-content-padding">
     <h1 class="page-title txt-color-blueDark"><i class="fa fa-fw fa-home"></i> <?php echo _USER_GAS_NOME; ?>  &nbsp;</h1>
 </div>
+<p></p>
+<div class="panel panel-blueLight padding-10 margin-top-10">
+    <?php echo $g; ?>
+</div>
 
 <section id="widget-grid" class="margin-top-10">
 
@@ -201,7 +197,6 @@ $geo_users = rtrim($geo_users,", ");
 
         </article>
         <article class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
-            <?php echo $wg_schedagas->print_html(); ?>
             <?php if(_USER_PERMISSIONS & perm::puo_creare_gas){echo $wg_gasopt->print_html(); }?>
         </article>
 
@@ -262,6 +257,7 @@ $geo_users = rtrim($geo_users,", ");
 
         console.log("pagefunction");
         //------------HELP WIDGET
+        document.title = '<?php echo "ReteDES.it :: $page_title";?>';
         <?php echo help_render_js('gas_home');?>
         //------------END HELP WIDGET
 

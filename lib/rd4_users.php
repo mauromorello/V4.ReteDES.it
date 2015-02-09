@@ -45,6 +45,16 @@ class ope{
         const sconto ="@@SCONT";        //7
         const abbuono ="@@ABBN";        //8
 }
+class opeGAS{
+        const rettifica = "##RETT";     //1
+        const trasporto = "##TRASP";    //2
+        const gestione = "##GEST";      //3
+        const progetto = "##PROG";      //4
+        const rimborso = "##RIMB";      //5
+        const maggiorazione = "##MAGG"; //6
+        const sconto ="##SCONT";        //7
+        const abbuono ="##ABBN";        //8
+}
 
 function conv_datetime_from_db ($data){
   //list ($y, $m, $d) = explode ("-", $data);
@@ -221,7 +231,13 @@ function IsLoggedIn(){
 
            define("_GAS_CASSA_DEFAULT_SOLO_CASSATI",$row['valore_text']=='SI' ? true: false );
 
+           //GAS CASSA CARICO AUTOMATICO
+           $stmt = $db->prepare("SELECT * FROM retegas_options WHERE id_gas =:id_gas AND chiave ='_GAS_CASSA_BONIFICO_AUTOMATICO';");
+           $stmt->bindValue(':id_gas', _USER_ID_GAS, PDO::PARAM_INT);
+           $stmt->execute();
+           $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
+           define("_GAS_CASSA_BONIFICO_AUTOMATICO",$row['valore_text']=='SI' ? true: false );
 
            //DES
            $stmt = $db->prepare("SELECT * FROM retegas_des WHERE id_des=:id LIMIT 1;");

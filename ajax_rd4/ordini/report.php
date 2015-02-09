@@ -1,14 +1,19 @@
-<?php require_once("inc/init.php");
+<?php
+require_once("inc/init.php");
+require_once("../../lib_rd4/class.rd4.ordine.php");
+
 $ui = new SmartUI;
 $page_title= "Report ordine";
 //CONTROLLI
 $id_ordine = CAST_TO_INT($_GET["id"],0);
+$O = new ordine($id_ordine);
 
 if (posso_gestire_ordine($id_ordine)){
     $gestore=true;
 }else{
     $gestore=false;
 }
+
 $stmt = $db->prepare("SELECT    O.id_ordini,
                                 O.id_listini,
                                 O.descrizione_ordini,
@@ -30,138 +35,69 @@ $stmt->bindValue(':id', $id_ordine, PDO::PARAM_INT);
 $stmt->execute();
 $rowo = $stmt->fetch(PDO::FETCH_ASSOC);
 
-$u = '<div class="margin-top-10">
-                <label>Mostra gli articoli acquistati in questo ordine</label><br>
-                <div class="btn-group btn-group-justified">
-                    <a class="btn btn-default btn-md" href="javascript:void(0)">LA MIA SPESA</a>
-                </div>
-      </div>
-      <div class="margin-top-10">
-                <label>Mostra gli articoli acquistati in questo ordine, divisi per amico</label><br>
-                <div class="btn-group btn-group-justified">
-                    <a class="btn btn-default btn-md" href="javascript:void(0)">DETTAGLIO AMICI</a>
-                </div>
-      </div>
-      <div class="margin-top-10">
-                <label>Mostra solo i totali, ma divisi per amico</label><br>
-                <div class="btn-group btn-group-justified">
-                    <a class="btn btn-default btn-md" href="javascript:void(0)">TOTALE AMICI</a>
-                </div>
-      </div>';
 
-
-$options = array(   "editbutton" => false,
-                    "fullscreenbutton"=>true,
-                    "deletebutton"=>false,
-                    "colorbutton"=>true);
-$wg_report_utente = $ui->create_widget($options);
-$wg_report_utente->id = "wg_report_utente";
-$wg_report_utente->body = array("content" => $u,"class" => "");
-$wg_report_utente->header = array(
-    "title" => '<h2>Utente</h2>',
-    "icon" => 'fa fa-user'
-);
-
-$g = 'Gas';
-
-
-$options = array(   "editbutton" => false,
-                    "fullscreenbutton"=>true,
-                    "deletebutton"=>false,
-                    "colorbutton"=>true);
-$wg_report_gas = $ui->create_widget($options);
-$wg_report_gas->id = "wg_report_gas";
-$wg_report_gas->body = array("content" => $g,"class" => "");
-$wg_report_gas->header = array(
-    "title" => '<h2>GAS</h2>',
-    "icon" => 'fa fa-home'
-);
-
-$d = '<div class="margin-top-10">
-                <label>Stampa gli articoli raggruppati per il fornitore.</label><br>
-                <div class="btn-group btn-group-justified">
-                    <a class="btn btn-default btn-md" href="javascript:void(0)">ARTICOLI (COMPLETA)</a>
-                </div>
-      </div>
-      <div class="margin-top-10">
-                <label>Visualizza gli articoli raggruppati per il fornitore, semplificato, adatto ad essere esportato facilmente.</label><br>
-                <div class="btn-group btn-group-justified">
-                    <a class="btn btn-default btn-md" href="javascript:void(0)">ARTICOLI (SEMPLICE)</a>
-                </div>
-      </div>
-      ';
-
-
-$options = array(   "editbutton" => false,
-                    "fullscreenbutton"=>true,
-                    "deletebutton"=>false,
-                    "colorbutton"=>true);
-$wg_report_ditta = $ui->create_widget($options);
-$wg_report_ditta->id = "wg_report_ditta";
-$wg_report_ditta->body = array("content" => $d,"class" => "");
-$wg_report_ditta->header = array(
-    "title" => '<h2>Ditta</h2>',
-    "icon" => 'fa fa-truck'
-);
-
-$ge = '<div class="margin-top-10">
-                <label>Vedi il dettaglio raggruppato per utente, utile per dividere la merce arrivata utente per utente</label><br>
-                <div class="btn-group btn-group-justified">
-                    <a class="btn btn-default btn-md" href="javascript:void(0)">DETTAGLIO UTENTI</a>
-                </div>
-      </div>
-      <div class="margin-top-10">
-                <label>Visualizza gli articoli raggruppati per GAS, utile per dividere la merce arrivata per GAS</label><br>
-                <div class="btn-group btn-group-justified">
-                    <a class="btn btn-default btn-md" href="javascript:void(0)">RAGGRUPPA PER GAS</a>
-                </div>
-      </div>
-      <div class="margin-top-10">
-                <label>Visualizza il dettaglio raggruppato per articolo, utile per dividere la merce arrivata.</label><br>
-                <div class="btn-group btn-group-justified">
-                    <a class="btn btn-default btn-md" href="javascript:void(0)">RAGGRUPPA PER ARTICOLO</a>
-                </div>
-      </div>
-      ';
-
-
-$options = array(   "editbutton" => false,
-                    "fullscreenbutton"=>true,
-                    "deletebutton"=>false,
-                    "colorbutton"=>true);
-$wg_report_gestore = $ui->create_widget($options);
-$wg_report_gestore->id = "wg_report_gestore";
-$wg_report_gestore->body = array("content" => $ge,"class" => "");
-$wg_report_gestore->header = array(
-    "title" => '<h2>GESTORE</h2>',
-    "icon" => 'fa fa-gear'
-);
+$la_mia_spesa ='<div class="well text-center"><a href="#ajax_rd4/reports/la_mia_spesa.php?id='.$id_ordine.'" class="btn btn-md btn-warning btn-block font-md">LA MIA SPESA</a><br><span class="font-xs">...visualizza quello che hai ordinato di questo ordine.</span></div>';
+$dettaglio_amici ='<div class="well text-center"><a href="#ajax_rd4/rettifiche/start.php?id='.$id_ordine.'" class="btn btn-md btn-warning btn-block font-md disabled">DETTAGLIO AMICI</a><br><span class="font-xs">...visualizza quello che hai ordinato diviso per amico</span></div>';
+$articoli_gas ='<div class="well text-center"><a href="#ajax_rd4/rettifiche/start.php?id='.$id_ordine.'" class="btn btn-md btn-info btn-block font-md disabled">ARTICOLI GAS</a><br><span class="font-xs">...visualizza gli articoli che ha acquistato il tuo GAS</span></div>';
+$dettaglio_utenti_gas ='<div class="well text-center"><a href="#ajax_rd4/reports/utenti_gas.php?id='.$id_ordine.'" class="btn btn-md btn-info btn-block font-md">UTENTI GAS</a><br><span class="font-xs">...visualizza quello che ha acquistato il tuo GAS diviso per utente</span></div>';
+$articoli_raggruppati ='<div class="well text-center"><a href="#ajax_rd4/reports/articoli_raggruppati.php?id='.$id_ordine.'" class="btn btn-md btn-success btn-block font-md">ARTICOLI</a><br><span class="font-xs">...visualizza l\'ordine completo raggruppato per articolo, segnalando le scatole piene e gli avanzi.</span></div>';
+$distribuzione ='<div class="well text-center"><a href="#ajax_rd4/reports/distribuzione.php?id='.$id_ordine.'" class="btn btn-md btn-success btn-block font-md">DISTRIBUZIONE</a><br><span class="font-xs">...per ogni articolo, vedi il dettaglio di chi l\'ha messo in ordine.</span></div>';
 
 
 ?>
 
-<?php echo navbar_ordine($id_ordine); ?>
+<?php echo $O->navbar_ordine(); ?>
+<p></p>
+<h1 class="font-xl">Se hai acquistato articoli in questo ordine</h1>
+<div class="row margin-top-10">
+    <div class="col-md-4">
+        <?php echo $la_mia_spesa; ?>
+    </div>
+    <div class="col-md-4">
+        <?php echo $dettaglio_amici; ?>
+    </div>
+    <div class="col-md-4">
+    </div>
+</div>
+<h1 class="font-xl">Cosa ha acquistato il tuo GAS</h1>
+<div class="row margin-top-10">
+    <div class="col-md-4">
+        <?php echo $articoli_gas; ?>
+    </div>
+    <div class="col-md-4">
+        <?php echo $dettaglio_utenti_gas; ?>
+    </div>
+    <div class="col-md-4">
+    </div>
+</div>
+<h1 class="font-xl">Per ordinare la merce al fornitore.</h1>
+<div class="row margin-top-10">
+    <div class="col-md-4">
+        <?php echo $articoli_raggruppati; ?>
+    </div>
+    <div class="col-md-4">
+    </div>
+    <div class="col-md-4">
+    </div>
+</div>
+<h1 class="font-xl">Per distribuire la merce</h1>
+<div class="row margin-top-10">
+    <div class="col-md-4">
+        <?php echo $distribuzione; ?>
+    </div>
+    <div class="col-md-4">
+    </div>
+    <div class="col-md-4">
+    </div>
+</div>
 
 <section id="widget-grid" class="margin-top-10">
-
-
-
     <div class="row">
         <!-- PRIMA COLONNA-->
-        <article class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
-            <?php echo $wg_report_utente->print_html(); ?>
-
-            <?php echo $wg_report_gestore->print_html(); ?>
-        </article>
-        <article class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
-
+        <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
             <?php echo help_render_html("report_ordine",$page_title); ?>
-            <?php echo $wg_report_ditta->print_html(); ?>
-            <?php echo $wg_report_gas->print_html(); ?>
         </article>
-
     </div>
-
 </section>
 
 <script type="text/javascript">

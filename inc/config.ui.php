@@ -33,7 +33,29 @@ if(_USER_PERMISSIONS & perm::puo_gestire_retegas){
     $amministra_menu = array("title" => "Ammimistra",
                              "icon" => "fa-lock");
 }
+if(_USER_GAS_USA_CASSA){
+    if(_USER_PERMISSIONS & perm::puo_gestire_la_cassa){
+    $cassa_menu = array(
+                        "title" => "Cassa",
+                        "icon" => "fa-bank",
+                        "sub" => array(
+                                                "cassa_home" => array(
+                                                    'title' => 'Riepilogo',
+                                                    "url" => "ajax_rd4/cassa/cassa_home.php"),
 
+
+                                                "cassa_richieste" => array(
+                                                    'title' => 'Richieste carico',
+                                                    "url" => "ajax_rd4/cassa/richieste.php")
+                                        )
+                    );
+    }else{
+        $cassa_menu = array("title" => "Cassa","icon" => "fa-lock");
+    }
+}else{
+    $cassa_menu = array("title" => "Cassa",
+                             "icon" => "fa-lock");
+}
 $user_menu = array(
                     "title" => _USER_FULLNAME,
                     "icon" => "fa-user",
@@ -90,9 +112,10 @@ $help_menu =  array(
                                 'title' => 'Ordini',
                                 "url" => "ajax_rd4/help/help_ordini.php"),
 
-                            "help_listini" => array(
-                                'title' => 'Listini',
-                                "url" => "ajax_rd4/help/help_listini.php"),
+                            "help_cronologia" => array(
+                                'title' => 'Cronologia Help',
+                                'icon' => 'fa-lock',
+                                "url" => "ajax_rd4/help/cronologia_help.php"),
 
                             "help_gas" => array(
                                 'title' => 'GAS & Utenti',
@@ -158,8 +181,9 @@ $page_nav =array(   "dashboard" => array(
                             "title" => "Cruscotto",
                             "icon" => "fa-dashboard",
                             "url" => "ajax_rd4/home.php"),
-
+                    "cassa_menu" => $cassa_menu,
                     "user_home" => $user_menu,
+
                     "gas_menu" => $gas_menu,
                     "ordini_menu" => $ordini_menu,
                     "fornitori_menu" => $fornitori_menu,

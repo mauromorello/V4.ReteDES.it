@@ -110,6 +110,7 @@ if(_USER_PERMISSIONS & perm::puo_creare_ditte){
 
     var pagefunction = function() {
         //-------------------------HELP
+        document.title = '<?php echo "ReteDES.it :: $page_title";?>';
         <?php echo help_render_js("tutte_le_ditte"); ?>
         //-------------------------HELP
 

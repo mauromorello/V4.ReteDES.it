@@ -1,6 +1,8 @@
 <?php
 $page_title = "Listino ";
 require_once("inc/init.php");
+require_once("../../lib_rd4/class.rd4.listino.php");
+
 $ui = new SmartUI;
 $converter = new Encryption;
 
@@ -14,18 +16,17 @@ if($id_listino==0){
     }
 }
 
-$stmt = $db->prepare("SELECT * FROM  retegas_listini WHERE id_listini = :id_listini AND id_utenti='"._USER_ID."';");
-$stmt->bindParam(':id_listini', $id_listino, PDO::PARAM_INT);
-$stmt->execute();
+$L = new listino($id_listino);
 
 
-if($stmt->rowCount()==1){
+if(posso_gestire_listino($id_listino)){
     $proprietario="true";
     //$buttons[] ='<a href="javascript:void(0);"><i class="fa fa-unlock fa-2x fa-border text-success" rel="popover" data-placement="left" data-original-title="Permessi" data-content="Puoi lavorare su questo listino perchè ne sei il proprietario"></i></a>';
     $editable = "editable";
 }else{
     $proprietario="false";
     $editable = "";
+
     //$buttons[] ='<a href="javascript:void(0);"><i class="fa fa-lock fa-2x fa-border text-danger" rel="popover" data-placement="left" data-original-title="Permessi" data-content="Non sei l\'autore di questo listino."></i></a>';
 }
 
@@ -33,8 +34,8 @@ $stmt = $db->prepare("SELECT * FROM  retegas_listini WHERE id_listini = :id_list
 $stmt->bindParam(':id_listino', $id_listino, PDO::PARAM_INT);
 $stmt->execute();
 $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-if((conv_date_from_db($row["data_valido"]))=="00/00/0000" OR ($row["id_tipologie"]==0)){
+if(!$L->is_completo){
+//if((conv_date_from_db($row["data_valido"]))=="00/00/0000" OR ($row["id_tipologie"]==0)){
     $incompleto=true;
 }else{
     $incompleto=false;
@@ -43,20 +44,14 @@ if((conv_date_from_db($row["data_valido"]))=="00/00/0000" OR ($row["id_tipologie
 if($row["tipo_listino"]==1){
     $tipo="Magazzino";
 }else{
-    $tipo="Normale";}
+    $tipo="Normale";
+}
 if($row["is_privato"]==1){
     $privato="Privato";
 }else{
-    $privato="Pubblico";}
-$descrizione_listini = $row["descrizione_listini"];
-$data_valido= conv_date_from_db($row["data_valido"]);
-$exp_date = strtotime($row["data_valido"]);
-$todays_date = strtotime(date("Y-m-d"));
-if($exp_date<$todays_date){
-     $valido='E\' attualmente <span class="font-md text-danger">SCADUTO</span>, dal <span class="font-md">'.$data_valido.'</span>';
-}else{
-    $valido='E\' attualmente <span class="font-md text-success">VALIDO</span>, fino al <span class="font-md">'.$data_valido.'</span>';
+    $privato="Pubblico";
 }
+
 
 
 $stmt = $db->prepare("SELECT U.fullname,G.descrizione_gas  FROM  maaking_users U inner join retegas_gas G on G.id_gas=U.id_gas WHERE userid = :userid;");
@@ -66,12 +61,6 @@ $p = $stmt->fetch(PDO::FETCH_ASSOC);
 $fullname_p = $p["fullname"];
 $gas_p = $p["descrizione_gas"];
 
-$stmt = $db->prepare("SELECT *  FROM  retegas_tipologie WHERE id_tipologia = :id_tipologia;");
-$stmt->bindParam(':id_tipologia', $row["id_tipologie"], PDO::PARAM_INT);
-$stmt->execute();
-$t = $stmt->fetch(PDO::FETCH_ASSOC);
-$tipologia = $t["descrizione_tipologia"];
-$id_tipologia = $t["id_tipologia"];
 
 $stmt = $db->prepare("SELECT *  FROM  retegas_ditte WHERE id_ditte = :id_ditte;");
 $stmt->bindParam(':id_ditte', $row["id_ditte"], PDO::PARAM_INT);
@@ -119,24 +108,74 @@ if($incompleto){
 $alert_incompleto= '<i class="fa fa-warning fa-2x text-danger"></i> ';
 }
 
+$rows = $L->lista_referenti_extra();
+if(count($rows)>0){
+    foreach($rows as $row){
+       if($row["valore_int"]==0){
+           if($L->id_utenti==_USER_ID){
+                $op1='<div class="btn-group pull-right">
+                                    <a class="btn btn-xs btn-success attiva_extra" href="javascript:void(0);" data-id_listini="'.$L->id_listini.'" data-id_user="'.$row["id_user"].'"><i class="fa fa-check"></i> attiva</a>
+                                    <a class="btn btn-xs btn-danger elimina_extra" href="javascript:void(0);" data-id_listini="'.$L->id_listini.'" data-id_user="'.$row["id_user"].'"><i class="fa fa-times"></i> elimina</a>
+                                </div>';
+                $op2='<div class="btn-group pull-right">
+                                    <a class="btn btn-xs btn-danger elimina_extra" href="javascript:void(0);" data-id_listini="'.$L->id_listini.'" data-id_user="'.$row["id_user"].'"><i class="fa fa-times"></i></a>
+                                </div>';
+           }else{
+                $op1='';
+                $op2='';
+           }
+
+           $gestori_extra_attesa .= '<li>
+                            <span class="read">
+                                <a href="javascript:void(0);" class="msg">
+                                    <img src="'.src_user($row["id_user"]).'" alt="" class="margin-top-5" width="32" height="32" />
+                                    <span class="subject"><strong>'.$row["fullname"].'</strong></span>
+                                    <span class="subject font-xs">'.$row["descrizione_gas"].'</span>
+                                </a>
+                                '.$op1.'
+                            </span>
+                        </li>';
+       }else{
+        $gestori_extra_ok.= '<li>
+                            <span class="read">
+                                <a href="javascript:void(0);" class="msg">
+                                    <img src="'.src_user($row["id_user"]).'" alt="" class="margin-top-5" width="32" height="32" />
+                                    <span class="subject"><strong>'.$row["fullname"].'</strong></span>
+                                    <span class="subject font-xs">'.$row["descrizione_gas"].'</span>
+                                </a>
+                                '.$op2.'
+                            </span>
+                        </li>';
+
+
+       }
+    }
+
+}
+
+    if(empty($gestori_extra_ok)){$gestori_extra_ok='<li>Nessuno.</li>';}
+    if(empty($gestori_extra_attesa)){$gestori_extra_attesa='<li>Nessuno.</li>';}
 
 $s = '  <div>
 
-            <img id="img_listino" src="img_rd4/t_'.$row["id_tipologie"].'_240.png" alt="" class="air air-top-right margin-top-5" width="80" height="80">
+            <img id="img_listino" src="img_rd4/t_'.$L->id_tipologie.'_240.png" alt="" class="air air-top-right margin-top-5" width="80" height="80">
             <label for="descrizione_listini">Identificativo:</label>
-            <p class="font-lg" id="id_listino" >#'.$row["id_listini"].'</p>
+            <p class="font-lg" id="id_listino" >#'.$L->id_listini.'</p>
             <label for="descrizione_listini">Descrizione</label>
-            <p class="font-lg '.$editable.'" id="descrizione_listini" data-type="text" data-pk="'.$row["id_listini"].'">'.$row["descrizione_listini"].'</p>
+            <p class="font-lg '.$editable.'" id="descrizione_listini" data-type="text" data-pk="'.$L->id_listini.'">'.$L->descrizione_listini.'</p>
             <label for="data_valido">'.$alert_incompleto.' Termine di validità</label>
-            <p class="font-lg '.$editable.'" id="data_valido" data-type="date" data-pk="'.$row["id_listini"].'" data-format="dd/mm/yyyy">'.$data_valido.'</p>
+            <p class="font-lg '.$editable.'" id="data_valido" data-type="date" data-pk="'.$L->id_listini.'" data-format="dd/mm/yyyy">'.$L->data_valido.'</p>
             <label for="tipo_listino" >Tipo listino</label>
-            <p class="font-lg '.$editable.'_tipo" id="tipo_listino" data-type="select" data-pk="'.$row["id_listini"].'" data-value="'.$row["tipo_listino"].'">'.$tipo.'</p>
+            <p class="font-lg '.$editable.'_tipo" id="tipo_listino" data-type="select" data-pk="'.$L->id_listini.'" data-value="'.$L->tipo_listino.'">'.$tipo.'</p>
             <label for="tipo_listino">Pubblico / Privato</label>
-            <p class="font-lg '.$editable.'_privato" id="is_privato" data-type="select" data-pk="'.$row["id_listini"].'" data-value="'.$row["is_privato"].'">'.$privato.'</p>
+            <p class="font-lg '.$editable.'_privato" id="is_privato" data-type="select" data-pk="'.$L->id_listini.'" data-value="'.$L->is_private.'">'.$privato.'</p>
             <label for="id_tipologie">'.$alert_incompleto.' Categoria</label>
-            <p class="font-lg '.$editable.'_tipologia" id="id_tipologie" data-type="select" data-pk="'.$row["id_listini"].'" data-value="'.$row["id_tipologie"].'">'.$tipologia.'</p>
-
-
+            <p class="font-lg '.$editable.'_tipologia" id="id_tipologie" data-type="select" data-pk="'.$L->id_listini.'" data-value="'.$L->id_tipologie.'">'.$L->descrizione_tipologia.'</p>
+            <div class="row padding-10">
+            <h4>Gestori extra in attesa:</h4>
+            <ul class="list-unstyled">'.$gestori_extra_attesa.'</ul></div>
+            <h4>Gestori extra:</h4>
+            <ul class="list-unstyled">'.$gestori_extra_ok.'</ul></div>
            </div>';
 
 
@@ -152,56 +191,11 @@ $wg_listino->header = array(
     "icon" => 'fa fa-cubes'
     );
 
-//-----------------------------------------------------STATS
-
-
-$stats = '<p>Questo listino è stato inserito da <span class="font-md">'.$fullname_p.'</span>, del <span class="font-md">'.$gas_p.';</span> Essendo <span class="font-md">'.$privato.'</span>, può essere visto e usato da tutti gli utenti di ReteDES.it;
-          '.$valido.'.<br>
-          Contiene <span class="font-md"><strong>'.$n_articoli.'</strong></span> articoli.</p>
-          <hr>
-            <div class="row">
-                <div class="col-sm-6">
-                    <div class="well well-sm">
-                        <p>Ordini aperti: <span class="badge pull-right bg-color-greenLight">'.$ordini_aperti.'</span></p>
-                        <p>Ordini futuri: <span class="badge pull-right bg-color-blueLight">'.$ordini_futuri.'</span></p>
-                        <p>Ordini chiusi: <span class="badge pull-right bg-color-redLight">'.$ordini_chiusi.'</span></p>
-                    </div>
-                </div>
-                <div class="col-sm-6">
-                    <div class="well well-sm">
-                        <p>Gestori: <span class="badge pull-right">'.$numero_gestori.'</span></p>
-                        <p>Gas: <span class="badge pull-right">6</span></p>
-                        <p>Utenti: <span class="badge pull-right">6</span></p>
-                    </div>
-                </div>
-            </div>';
-
-$options = array(   "editbutton" => false,
-                    "fullscreenbutton"=>false,
-                    "deletebutton"=>false,
-                    "colorbutton"=>true);
-$wg_listino_stats = $ui->create_widget($options);
-$wg_listino_stats->id = "wg_listino_stats";
-$wg_listino_stats->body = array("content" => $stats,"class" => "");
-$wg_listino_stats->header = array(
-    "title" => '<h2>Statistiche</h2>',
-    "icon" => 'fa fa-bar-chart-o'
-    );
 
 //-----------------------------------------------------ARTICOLI
 $a = '
         <div class="well well-sm well-light">
-
-            <span class="pull-right">
-                <button class="btn btn-sm btn-success btn-sm" onclick="$(\'#jqgrid_ilsave\').click();">Salva</button>
-                <button class="btn btn-sm btn-danger btn-sm" onclick="$(\'#jqgrid_ilcancel\').click();">Esci</button>
-            </span>
-
             <button rel="popover-hover" data-placement="bottom" data-original-title="Filtra" data-content="Filtra tutto il listino in base a cosa inserisci nei rispettivi campi. Clicca per far comparire la riga del filtro." class="btn btn-default btn-circle btn-lg" onclick="$(\'.ui-search-toolbar\').toggle();"><i class="fa fa-filter "></i></button>
-            <button rel="popover-hover" data-placement="bottom" data-original-title="Aggiungi" data-content="Permettere di aggiungere un articolo. Cliccare su SALVA al termine." class="btn btn-default btn-circle btn-lg" onclick="$(\'#jqgrid_iladd\').click();$(\'.ui-search-toolbar\').hide();"><i class="fa fa-plus"></i></button>
-            <button rel="popover-hover" data-placement="bottom" data-original-title="Modifica" data-content="Modifica l\'articolo selezionato. Salvare con il pulsante SALVA. Gli articoli modificati NON vanno ad influire su quanto già ordinato dagli utenti." class="btn btn-default btn-circle btn-lg" onclick="$(\'#jqgrid_iledit\').click();$(\'.ui-search-toolbar\').hide();"><i class="fa fa-pencil "></i></button>
-            <button rel="popover-hover" data-placement="bottom" data-original-title="Elimina" data-content="Selezionare prima una o più righe da cancellare. Gli articoli cancellati NON andranno ad influire su quanto già ordinato dagli utenti." class="btn btn-danger btn-circle btn-lg" onclick="$(\'#del_jqgrid\').click();"><i class="fa fa-trash-o "></i></button>
-
         </div>
         <div id="jqgcontainer" style="height:360px;">
             <table id="jqgrid"></table>
@@ -249,27 +243,22 @@ if($proprietario=="true"){
     }
     if($n_articoli>0){
         if($ordini_aperti==0){
-            $cancella =' <hr>
-                        <label for="del_group">Elimina:</label>
-                            <div class="btn-group pull-right" id="del_group">
-                                    <a class="btn btn-danger" id="del_articoli">ARTICOLI</a>
-                            </div>';
+            $cancella =' <hr><a class="btn btn-danger btn-block" id="del_articoli">ELIMINA ARTICOLI</a>';
         }
     }else{
-        $cancella ='<hr>
-                        <label for="del_group">Elimina:</label>
-                            <div class="btn-group pull-right" id="del_group">
-                                <a class="btn btn-danger" id="del_listino">LISTINO</a>
-                            </div>';
+        $cancella ='<hr><a class="btn btn-danger btn-block" id="del_listino">ELIMINA LISTINO</a>';
     }
 
 
 }else{
     $upload='';
     $cancella='';
+    $aiuta_a_gestire='<hr><a class="btn btn-primary btn-block" id="aiuta_a_gestire">AIUTA A GESTIRE</a>';
 }
 if($n_articoli>0){
-
+    if(posso_gestire_listino($L->id_listini)){
+        $gestisci_articoli ='<hr><a class="btn btn-info btn-block" id="gestisci_articoli">GESTISCI ARTICOLI</a>';
+    }
     $esporta =' <hr class="margin-top-5">
         <label for="exp_group">Esporta questo listino:</label>
         <div class="btn-group pull-right" id="exp_group">
@@ -289,11 +278,7 @@ if($n_articoli>0){
                             </ul>
                         </div>
        </div>';
-    $clona='<hr>
-       <label for="clona_group">Clona questo listino:</label>
-        <div class="btn-group pull-right" id="clona_group">
-                <a class="btn btn-success" id="clona_listino">CLONA</a>
-       </div>';
+    $clona='<hr><a class="btn btn-success btn-block" id="clona_listino">CLONA LISTINO</a>';
 }else{
     $esporta ='';
     $clona='';
@@ -308,6 +293,8 @@ $o = '
        '.$upload.'
        '.$clona.'
        '.$cancella.'
+       '.$gestisci_articoli.'
+       '.$aiuta_a_gestire.'
        <hr>
 ';
 
@@ -334,12 +321,12 @@ if($incompleto){
 }
 
 //NAVBAR
-$title='<i class="fa fa-cubes fa-2x pull-left"></i> '.$row["descrizione_listini"].'<br><small class="note"></small>';
+//$title='<i class="fa fa-cubes fa-2x pull-left"></i> '.$row["descrizione_listini"].'<br><small class="note"></small>';
 
 
 ?>
 
-<?php echo navbar($title,$buttons); ?>
+<?php echo $L->navbar_listino(); ?>
 <?php echo $inco; ?>
 <section id="widget-grid" class="margin-top-10">
     <div class="row">
@@ -350,12 +337,10 @@ $title='<i class="fa fa-cubes fa-2x pull-left"></i> '.$row["descrizione_listini"
     <div class="row">
         <!-- PRIMA COLONNA-->
         <article class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
-            <?php echo help_render_html('listino',$page_title); ?>
             <?php echo $wg_articoli_oper->print_html(); ?>
-            <?php echo $wg_listino_stats->print_html(); ?>
         </article>
         <article class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
-            <?php echo $wg_listino->print_html(); ?>
+            <?php if(posso_gestire_listino($L->id_listini)){echo $wg_listino->print_html();} ?>
         </article>
 
     </div>
@@ -366,6 +351,7 @@ $title='<i class="fa fa-cubes fa-2x pull-left"></i> '.$row["descrizione_listini"
         <!-- PRIMA COLONNA-->
         <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
             <?php echo $wg_articoli->print_html(); ?>
+            <?php echo help_render_html('listino',$page_title); ?>
         </article>
     </div>
 </section>
@@ -481,10 +467,10 @@ $title='<i class="fa fa-cubes fa-2x pull-left"></i> '.$row["descrizione_listini"
         function run_jqgrid_function() {
             var rowid;
             var lastSel;
-            var is_editable = <?php echo $proprietario; ?>;
+            var is_editable = false;
 
             jQuery("#jqgrid").jqGrid({
-               url:'ajax_rd4/listini/inc/articoli.php?id_listino=<?php echo $id_listino?>',
+               url:'ajax_rd4/listini/inc/articoli.php?id_listino=<?php echo $id_listino?>&s=en',
             datatype: "json",
                colNames:[   'Codice',
                             'Descrizione',
@@ -503,9 +489,10 @@ $title='<i class="fa fa-cubes fa-2x pull-left"></i> '.$row["descrizione_listini"
                             'T2',
                             'T3'
 
+
                             ],
                colModel:[
-                   {name:'codice',index:'codice', width:60,editable:is_editable},
+                   {name:'codice',index:'codice', width:60,editable:is_editable, },
                    {name:'descrizione_articoli',index:'descrizione_articoli', width:150, align:"left",editable:is_editable},
                    {name:'prezzo',index:'prezzo', width:50,align:"right",editable:is_editable,search:false},
 
@@ -526,43 +513,14 @@ $title='<i class="fa fa-cubes fa-2x pull-left"></i> '.$row["descrizione_listini"
 
 
                ],
-               //width: '100%',
-               //autowidth: true,
-               multiselect: true,
+
+               multiselect: false,
                onSelectRow:function(id){
                     var lastsel= jQuery('#jqgrid').jqGrid('getGridParam','selrow');
                     console.log(lastsel);
                     //$("#jqgrid").addRowData(rowid,data, position, lastsel);
                },
-              // ondblClickRow: function(id){
-               //  var rowid = id;
-               //  console.log("selected " + id)
-               //  if(id && id!==lastSel){
-               //     jQuery('#jqgrid').restoreRow(lastSel);
-               //     lastSel=id;
-               //  }
-                 //jQuery('#jqgrid').editRow(id, true);
-               //  jQuery("#jqgrid").jqGrid('editRow',id,
-               //     {
-               //         keys : true,
-               //         oneditfunc: function() {
-               //             //alert ("edited");
-               //         },
-               //         successfunc: function(response) {
-               //             var data = JSON.stringify(eval("(" + response.responseText + ")"));
-               //             var json = JSON.parse(data);
-               //             console.log(json.result);
-               //             if(json.result==="OK"){
-               //                 ok(json.msg);
-               //                 return true ;
-               //             }else{
-               //                 ko(json.msg);
-               //                 jQuery('#jqgrid').restoreRow(id);
-               //                 return false;
-               //             }
-               //         }
-               //     });
-               //},
+
                rowNum:20,
                rowList:[20,50,500,5000],
                pager: '#pjqgrid',
@@ -572,88 +530,26 @@ $title='<i class="fa fa-cubes fa-2x pull-left"></i> '.$row["descrizione_listini"
             //sortorder: "desc",
             editurl: "ajax_rd4/listini/inc/articoli.php?id_listino=<?php echo $id_listino?>",
 
-            caption:""
+            caption:"",
+            gridComplete : function(){
+                console.log("Grid Complete!");
+                //------------------------------XEDITABLE INIT
+
+            }
+
         });
+
+
+        /*
         jQuery("#jqgrid").jqGrid('navGrid','#pjqgrid',{
                 edit:false,
                 add:false,
-                del:true,
+                del:false,
                 search:false
         });
-
-
+        */
         jQuery("#jqgrid").jqGrid('filterToolbar',{});
-        jQuery("#jqgrid").jqGrid('inlineNav', "#pjqgrid",{
-                addParams: {
-                    addRowParams: {
 
-                        aftersavefunc: function(rowid, response) {
-
-                            console.log(response);
-                            data = $.parseJSON(response.responseText);
-                            console.log(data.result);
-                            if(data.result!="OK"){
-                                ko(data.msg);
-                                console.log("no: "+ rowid);
-                                //jQuery('#jqgrid').jqGrid("showAddEditButtons");
-                                //jQuery('#jqgrid').editRow(rowid);
-
-                                return false;
-                            }else{
-
-                                var newId = data.id,
-                                $self = $(this),
-                                idPrefix = $self.jqGrid("getGridParam", "idPrefix", newId),
-                                selrow = $self.jqGrid("getGridParam", "selrow", newId),
-                                selArrayRow = $self.jqGrid("getGridParam", "selarrrow", newId),
-                                oldId = $.jgrid.stripPref(idPrefix, rowid),
-                                dataIndex = $self.jqGrid("getGridParam", "_index", newId),
-                                i;
-                                // update id in the _index
-                                if (dataIndex[oldId] !== undefined) {
-                                    dataIndex[newId] = dataIndex[oldId];
-                                    delete dataIndex[oldId];
-                                }
-                                // update id in <tr>
-                                $("#" + $.jgrid.jqID(rowid)).attr("id", idPrefix + newId);
-                                // update id of selected row
-                                if (selrow === rowid) {
-                                    $self.jqGrid("setGridParam", { selrow: idPrefix + newId });
-                                }
-                                // update id in case of usage multiselect: true option
-                                if ($.isArray(selArrayRow)) {
-                                    i = $.inArray(rowid, selArrayRow);
-                                    if (i >= 0) {
-                                        selArrayRow[i] = idPrefix + newId;
-                                    }
-                                }
-                                // the next line is required if we use ajaxRowOptions: { async: true }
-                                $self.jqGrid("showAddEditButtons");
-
-
-                                ok(data.id);
-                            }
-
-
-                        }
-                    }
-                },
-                editParams: {
-                    successfunc: function(response){
-                        console.log(response)
-                        data = $.parseJSON(response.responseText);
-                        if(data.result==="OK"){
-                                            ok(data.msg);
-                                            return true ;
-                                        }else{
-                                            ko(data.msg);
-                                            jQuery('#jqgrid').restoreRow(data.id);
-                                            //$self.jqGrid("showAddEditButtons");
-                                            return false;
-                                        }
-                    }
-                }
-            });
 
         $(window).on('resize.jqGrid', function() {
             console.log ("resizing ");
@@ -725,6 +621,10 @@ $title='<i class="fa fa-cubes fa-2x pull-left"></i> '.$row["descrizione_listini"
         //-------------------------HELP
         <?php echo help_render_js("listino"); ?>
         //-------------------------HELP
+
+
+
+
 
         $(".editable").editable({
                                 url: 'ajax_rd4/listini/_act.php',
@@ -811,16 +711,20 @@ $title='<i class="fa fa-cubes fa-2x pull-left"></i> '.$row["descrizione_listini"
                                 }
                             });
     $("#export_listino_CSV").click(function(e) {
-       window.open("http://retegas.altervista.org/gas4/ajax_rd4/listini/_act.php?act=exp_csv&id=<?php echo $id_listino?>");
+        open("GET","http://retegas.altervista.org/gas4/ajax_rd4/listini/_act.php",{"act":"exp_csv","id":<?php echo $id_listino?>},"_BLANK");
     });
     $("#export_listino_XLS").click(function(e) {
-       window.open("http://retegas.altervista.org/gas4/ajax_rd4/listini/_act.php?act=exp_xls&t=XLS&id=<?php echo $id_listino?>");
+         open("GET","http://retegas.altervista.org/gas4/ajax_rd4/listini/_act.php",{"act":"exp_xls","t":"XLS","id":<?php echo $id_listino?>},"_BLANK");
     });
     $("#export_listino_XLSX").click(function(e) {
-       window.open("http://retegas.altervista.org/gas4/ajax_rd4/listini/_act.php?act=exp_xls&t=XLSX&id=<?php echo $id_listino?>");
+        open("GET","http://retegas.altervista.org/gas4/ajax_rd4/listini/_act.php",{"act":"exp_xls","t":"XLSX","id":<?php echo $id_listino?>},"_BLANK");
     });
-      $("#export_listino_HTM").click(function(e) {
-       window.open("http://retegas.altervista.org/gas4/ajax_rd4/listini/_act.php?act=exp_htm&id=<?php echo $id_listino?>");
+    $("#export_listino_HTM").click(function(e) {
+        open("POST","http://retegas.altervista.org/gas4/ajax_rd4/listini/_act.php",{"act":"exp_htm","id":<?php echo $id_listino?>},"_BLANK");
+    });
+    $("#gestisci_articoli").click(function(e) {
+        //open("POST","http://retegas.altervista.org/gas4/ajax_rd4/listini/_act.php",{"act":"exp_htm","id":<?php echo $id_listino?>},"_BLANK");
+        location.replace('http://retegas.altervista.org/gas4/#ajax_rd4/listini/edit.php?id=<?php echo $id_listino?>');
     });
     $("#clona_listino").click(function(e) {
     $.SmartMessageBox({
@@ -949,7 +853,79 @@ $title='<i class="fa fa-cubes fa-2x pull-left"></i> '.$row["descrizione_listini"
                         });
     });
 
+    $('.attiva_extra').click(function(){
+        $this = $(this);
+        id_user = $this.data('id_user');
+        //ok("Lis " + id_listino + " User " + id_user);
+        $.ajax({
+                          type: "POST",
+                          url: "ajax_rd4/listini/_act.php",
+                          dataType: 'json',
+                          data: {act: "attiva_aiuta_a_gestire", id_user:id_user, id_listini:<?php echo $L->id_listini;?>},
+                          context: document.body
+                        }).done(function(data) {
+                            if(data.result=="OK"){
+                                    ok(data.msg);
+                            }else{
+                                    ko(data.msg)
+                            ;}
 
+                        });
+
+
+
+    });
+
+    $('.elimina_extra').click(function(){
+        $this = $(this);
+        id_user = $this.data('id_user');
+        $.ajax({
+                          type: "POST",
+                          url: "ajax_rd4/listini/_act.php",
+                          dataType: 'json',
+                          data: {act: "elimina_aiuta_a_gestire", id_user:id_user, id_listini:<?php echo $L->id_listini;?>},
+                          context: document.body
+                        }).done(function(data) {
+                            if(data.result=="OK"){
+                                    ok(data.msg);
+                            }else{
+                                    ko(data.msg)
+                            ;}
+
+                        });
+    });
+
+    $('#aiuta_a_gestire').click(function(){
+    $.SmartMessageBox({
+                title : "Vuoi aiutare a gestire questo listino ?",
+                content : "Scrivi un breve messaggio che verrà inviato all\'autore di questo listino, e se lo vorrà ti inserirà tra i suoi gestori.",
+                buttons : "[Esci][Invia]",
+                input : "text",
+                placeholder : "msg",
+                inputValue: '',
+            }, function(ButtonPress, Value) {
+
+                if(ButtonPress=="Invia"){
+                    $.ajax({
+                          type: "POST",
+                          url: "ajax_rd4/listini/_act.php",
+                          dataType: 'json',
+                          data: {act: "aiuta_a_gestire", value : Value, id:<?php echo $L->id_listini;?>},
+                          context: document.body
+                        }).done(function(data) {
+                            if(data.result=="OK"){
+                                    ok(data.msg);
+                                    //location.replace("http://retegas.altervista.org/gas4/?#ajax_rd4/listini/listino.php?id="+data.id);
+                            }else{
+                                ko(data.msg)
+                            ;}
+
+                        });
+                }
+            });
+
+            e.preventDefault();
+        })
 
     } // end pagefunction
 

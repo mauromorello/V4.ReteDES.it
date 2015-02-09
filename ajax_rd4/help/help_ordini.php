@@ -22,114 +22,177 @@ $page_title = "Help ORDINI";
             <!-- Timeline Content -->
             <div class="smart-timeline">
                 <ul class="smart-timeline-list">
+
                     <li>
                         <div class="smart-timeline-icon">
-                            <img src="img/avatars/sunny.png" width="32" height="32">
+                            <i class="fa fa-truck"></i>
                         </div>
                         <div class="smart-timeline-time">
-                            <small>just now</small>
+                            <small>Per prima cosa...</small>
                         </div>
                         <div class="smart-timeline-content">
-                            <p>
-                                <a href="javascript:void(0);"><strong>Trip to Adalaskar</strong></a>
-                            </p>
-                            <p>
-                                Check out my tour to Adalaskar
-                            </p>
-                            <p>
-                                <a href="javascript:void(0);" class="btn btn-xs btn-primary"><i class="fa fa-file"></i> Read the post</a>
-                            </p>
-                            <img src="img/superbox/superbox-thumb-4.jpg" alt="img" width="150">
-
-
-
-                        </div>
+                            <p><a href="javascript:void(0);"><strong>Si crea una ditta</strong></a></p>
+                            <p>Le ditte sono inserite dagli utenti dei gas iscritti a ReteDES.it; Ogni gas ha dei suoi criteri per ammettere una ditta nel circuito, e una volta inserita rimane visibile a tutti.</p>
+                            <p>Se si guarda la scheda di una ditta, si possono vedere anche i feedback della gente che ha ordinato merce da lei.</p>
+                       </div>
                     </li>
                     <li>
                         <div class="smart-timeline-icon">
-                            <i class="fa fa-file-text"></i>
+                            <i class="fa fa-cube"></i>
                         </div>
                         <div class="smart-timeline-time">
-                            <small>1 min ago</small>
+                            <small>successivamente...</small>
                         </div>
                         <div class="smart-timeline-content">
-                            <p>
-                                <strong>Meeting invite for "GENERAL GNU" [<a href="javascript:void(0);"><i>Go to my calendar</i></a>]</strong>
-                            </p>
-
-                            <div class="well well-sm display-inline">
-                                <p>Will you be able to attend the meeting - <strong> 10:00 am</strong> tomorrow?</p>
-                                <button class="btn btn-xs btn-default">Confirm Attendance</button>
-                            </div>
-
-                        </div>
-                    </li>
-                    <li>
-                        <div class="smart-timeline-icon bg-color-greenDark">
-                            <i class="fa fa-bar-chart-o"></i>
-                        </div>
-                        <div class="smart-timeline-time">
-                            <small>5 hrs ago</small>
-                        </div>
-                        <div class="smart-timeline-content">
-                            <p>
-                                <strong class="txt-color-greenDark">24hrs User Feed</strong>
-                            </p>
-
-                            <div class="sparkline" data-sparkline-type="compositeline" data-sparkline-spotradius-top="5" data-sparkline-color-top="#3a6965" data-sparkline-line-width-top="3" data-sparkline-color-bottom="#2b5c59" data-sparkline-spot-color="#2b5c59" data-sparkline-minspot-color-top="#97bfbf" data-sparkline-maxspot-color-top="#c2cccc" data-sparkline-highlightline-color-top="#cce8e4" data-sparkline-highlightspot-color-top="#9dbdb9" data-sparkline-width="170px" data-sparkline-height="40px" data-sparkline-line-val="[6,4,7,8,4,3,2,2,5,6,7,4,1,5,7,9,9,8,7,6]" data-sparkline-bar-val="[4,1,5,7,9,9,8,7,6,6,4,7,8,4,3,2,2,5,6,7]"><canvas width="170" height="40" style="display: inline-block; width: 170px; height: 40px; vertical-align: top;"></canvas></div>
-
-                            <br>
+                            <p><a href="javascript:void(0);"><strong>Si inserisce un listino</strong></a></p>
+                            <p>Balah blah blah</p>
                         </div>
                     </li>
                     <li>
                         <div class="smart-timeline-icon">
-                            <i class="fa fa-user"></i>
+                            <i class="fa fa-cubes"></i>
                         </div>
                         <div class="smart-timeline-time">
-                            <small>yesterday</small>
+                            <small>in quel listino...</small>
                         </div>
                         <div class="smart-timeline-content">
-                            <p>
-                                <a href="javascript:void(0);"><strong>Update user information</strong></a>
-                            </p>
-                            <p>
-                                Curabitur ullamcorper ultricies nisi. Nam eget dui. Etiam rhoncus. Maecenas tempus, tellus eget condimentum rhoncus, sem quam semper libero, sit amet adipiscing sem neque sed ipsum. Nam quam nunc, blandit vel, luctus pulvinar, hendrerit id, lorem. Maecenas nec odio et ante tincidunt tempus. Donec vitae sapien ut libero venenatis faucibus.
-                            </p>
-
-                            Tellus eget condimentum rhoncus, sem quam semper libero, sit amet adipiscing sem neque sed ipsum. Nam quam nunc, blandit
-
-                            <ul class="list-inline">
-                                <li>
-                                    <img src="img/superbox/superbox-thumb-6.jpg" alt="img" width="50">
-                                </li>
-                                <li>
-                                    <img src="img/superbox/superbox-thumb-5.jpg" alt="img" width="50">
-                                </li>
-                                <li>
-                                    <img src="img/superbox/superbox-thumb-7.jpg" alt="img" width="50">
-                                </li>
-                            </ul>
+                            <p><a href="javascript:void(0);"><strong>Si inseriscono gli articoli;</strong></a></p>
+                            <p>Balah blah blah</p>
                         </div>
                     </li>
                     <li>
                         <div class="smart-timeline-icon">
-                            <i class="fa fa-pencil"></i>
+                            <i class="fa fa-shopping-cart"></i>
                         </div>
                         <div class="smart-timeline-time">
-                            <small>12 Mar, 2013</small>
+                            <small>...finalmente</small>
                         </div>
                         <div class="smart-timeline-content">
-                            <p>
-                                <a href="javascript:void(0);"><strong>Nabi Resource Report</strong></a>
-                            </p>
-                            <p>
-                                Ean vulputate eleifend tellus. Aenean leo ligula, porttitor eu, consequat vitae, eleifend ac, enim. Aliquam lorem ante, dapibus in, viverra quis.
-                            </p>
-                            <a href="javascript:void(0);" class="btn btn-xs btn-default">Read more</a>
+                            <p><a href="javascript:void(0);"><strong>Si programma un ordine!!</strong></a></p>
+                            <p>Balah blah blah</p>
                         </div>
                     </li>
-                    <li class="text-center">
-                        <a href="javascript:void(0)" class="btn btn-sm btn-default"><i class="fa fa-arrow-down text-muted"></i> LOAD MORE</a>
+                    <li>
+                        <div class="smart-timeline-icon">
+                            <i class="fa fa-shopping-cart"></i>
+                        </div>
+                        <div class="smart-timeline-time">
+                            <small>..giunta l'ora X</small>
+                        </div>
+                        <div class="smart-timeline-content">
+                            <p><a href="javascript:void(0);"><strong>L'ordine si apre</strong></a></p>
+                            <p>Balah blah blah</p>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="smart-timeline-icon">
+                            <i class="fa fa-shopping-cart"></i>
+                        </div>
+                        <div class="smart-timeline-time">
+                            <small>durante l'apertura</small>
+                        </div>
+                        <div class="smart-timeline-content">
+                            <p><a href="javascript:void(0);"><strong>La gente acquista merce</strong></a></p>
+                            <p>Balah blah blah</p>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="smart-timeline-icon">
+                            <i class="fa fa-hand-o-up"></i>
+                        </div>
+                        <div class="smart-timeline-time">
+                            <small>ti aiuto !</small>
+                        </div>
+                        <div class="smart-timeline-content">
+                            <p><a href="javascript:void(0);"><strong>Gli utenti si offrono come aiutanti</strong></a></p>
+                            <p>Balah blah blah</p>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="smart-timeline-icon">
+                            <i class="fa fa-stop"></i>
+                        </div>
+                        <div class="smart-timeline-time">
+                            <small>si chiude!!</small>
+                        </div>
+                        <div class="smart-timeline-content">
+                            <p><a href="javascript:void(0);"><strong>L'ordine chiude;</strong></a></p>
+                            <p>Gli utenti non possono più aggiungere o togliere merce da quella ordinata</p>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="smart-timeline-icon">
+                            <i class="fa fa-stop"></i>
+                        </div>
+                        <div class="smart-timeline-time">
+                            <small>ad ordine chiuso</small>
+                        </div>
+                        <div class="smart-timeline-content">
+                            <p><a href="javascript:void(0);"><strong>La squadra dei referenti si mette al lavoro</strong></a></p>
+                            <p>Compiono gli "aggiustamenti", una rettifica volta a far quadrare l'ordine, togliendo e aggiungendo dove serve merce alla lista della spesa degli utenti. In questa fase è operativo: il referente, i referenti extra, i supervisori.</p>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="smart-timeline-icon">
+                            <i class="fa fa-paper-plane"></i>
+                        </div>
+                        <div class="smart-timeline-time">
+                            <small>un po' di pausa</small>
+                        </div>
+                        <div class="smart-timeline-content">
+                            <p><a href="javascript:void(0);"><strong>L'ordine viene inoltrato al fornitore</strong></a></p>
+                            <p>Per questo ci sono dei report appositi</p>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="smart-timeline-icon">
+                            <i class="fa fa-truck"></i>
+                        </div>
+                        <div class="smart-timeline-time">
+                            <small>Eccola!</small>
+                        </div>
+                        <div class="smart-timeline-content">
+                            <p><a href="javascript:void(0);"><strong>La merce ordinata arriva</strong></a></p>
+                            <p>Per questo ci sono dei report appositi</p>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="smart-timeline-icon">
+                            <i class="fa fa-gears"></i>
+                        </div>
+                        <div class="smart-timeline-time">
+                            <small>Il lavoro vero</small>
+                        </div>
+                        <div class="smart-timeline-content">
+                            <p><a href="javascript:void(0);"><strong>Si controlla il tutto</strong></a></p>
+                            <p>A questo punto la merce è arrivata. I referenti, aiutati dalle persone che si sono offerte precedentemente, smistano tutto il materiale, e controllano se manca qualcosa.</p>
+                            <p>Si fa quindi collimare il totale indicato da reteDES con il totale reale, usando gli strumenti di rettifica</p>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="smart-timeline-icon">
+                            <i class="fa fa-check-square"></i>
+                        </div>
+                        <div class="smart-timeline-time">
+                            <small>Finito ?</small>
+                        </div>
+                        <div class="smart-timeline-content">
+                            <p><a href="javascript:void(0);"><strong>Si convalida l'ordine</strong></a></p>
+                            <p>L'operazione di convalida serve a certificare da parte del referente che tutti gli importi assegnati agli utenti corrispondano alla realtà.</p>
+                            <p>Una volta convalidato l'ordine, il cassiere può intervenire per gestire la cassa</p>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="smart-timeline-icon">
+                            <i class="fa fa-bank"></i>
+                        </div>
+                        <div class="smart-timeline-time">
+                            <small>Soldi soldi soldi</small>
+                        </div>
+                        <div class="smart-timeline-content">
+                            <p><a href="javascript:void(0);"><strong>Il cassiere movimenta il credito degli utenti.</strong></a></p>
+                            <p>Con l'ordine convalidato, il cassiere ufficializza il movimento dei crediti degli utenti.</p>
+                        </div>
                     </li>
                 </ul>
             </div>
@@ -142,6 +205,7 @@ $page_title = "Help ORDINI";
     var pagefunction = function(){
 
         //------------HELP WIDGET
+        document.title = '<?php echo "ReteDES.it :: $page_title";?>';
         <?php echo help_render_js("help_ordini");?>
         //------------END HELP WIDGET
 

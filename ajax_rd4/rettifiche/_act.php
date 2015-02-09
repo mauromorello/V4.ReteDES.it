@@ -143,13 +143,24 @@ if(isset($_POST["act"])){
         case "schedina riepilogo":
         $id_ordine = CAST_TO_INT($_POST["id_ordine"],0);
 
-        $h= '<p>Totale ordine attuale:</p>
-                <h1  class="font-xl  text-success text-right"><strong >'. VA_ORDINE($id_ordine).'</strong> €</h1>
-                <p>Totale articoli:</p>
-                <h1  class="font-lg  text-success text-right"><strong >'. VA_ORDINE_ESCLUDI_RETT($id_ordine) .'</strong> €</h1>
+        $h= '   <p>Totale articoli:</p>
+                <h1  class="font-lg  text-success text-right"><strong>'. VA_ORDINE_SOLO_NETTO($id_ordine).'</strong> €</h1>
                 <p>Rettifiche:</p>
-                <h1  class="font-lg  text-danger text-right"><strong >'.  VA_ORDINE_SOLO_RETT($id_ordine) .'</strong> €</h1>
-                ';
+                <h1  class="font-lg  text-danger text-right"><strong>'. VA_ORDINE_SOLO_RETT($id_ordine) .'</strong> €</h1>
+                <p>Totale ordine:</p>
+                <h1  class="font-xl  text-success text-right"><strong>'. (VA_ORDINE_SOLO_RETT($id_ordine) + VA_ORDINE_SOLO_NETTO($id_ordine)).'</strong> €</h1>
+                <hr>
+                <p>Totale articoli tuo GAS:</p>
+                <h1  class="font-lg  text-success text-right"><strong>'. VA_ORDINE_GAS_SOLO_NETTO($id_ordine,_USER_ID_GAS).'</strong> €</h1>
+                <p>Rettifiche tuo GAS:</p>
+                <h1  class="font-lg  text-danger text-right"><strong>'. VA_ORDINE_GAS_SOLO_RETT($id_ordine,_USER_ID_GAS).'</strong> €</h1>
+                <p>Extra tuo GAS:</p>
+                <h1  class="font-lg  text-danger text-right"><strong>'. VA_ORDINE_GAS_SOLO_EXTRA_GAS($id_ordine,_USER_ID_GAS).'</strong> €</h1>
+                <p>Totale ordine tuo GAS:</p>
+                <h1  class="font-xl  text-success text-right"><strong>'. VA_ORDINE_GAS($id_ordine,_USER_ID_GAS).'</strong> €</h1>
+
+
+            ';
         $res=array("result"=>"OK", "msg"=>$h);
         echo json_encode($res);
         break;
@@ -178,21 +189,25 @@ if(isset($_POST["act"])){
 
 
             //--------------------------------RETTIFICA
-            $operazione = ope::rettifica;
-            switch ($tipo_movimento){
-                case 1: $operazione = ope::rettifica; $d="Rettifica"; break;
-                case 2: $operazione = ope::trasporto; $d="Spese Trasporto";break;
-                case 3: $operazione = ope::gestione; $d="Spese Gestione"; break;
-                case 4: $operazione = ope::progetto; $d="Finanziamento progetto"; break;
-                case 5: $operazione = ope::rimborso; $d="Rimborso spese"; break;
-                case 6: $operazione = ope::maggiorazione; $d="Maggiorazione"; break;
-                case 7: $operazione = ope::sconto; $d="Sconto"; break;
-                case 8: $operazione = ope::abbuono;$d="Abbuono"; break;
-            }
+
             if($descrizione_rettifica==""){$descrizione_rettifica=$d;}
 
 
             if($coinvolti==1){
+                $operazione = ope::rettifica;
+                //operazioni con @@
+                switch ($tipo_movimento){
+                    case 1: $operazione = ope::rettifica; $d="Rettifica"; break;
+                    case 2: $operazione = ope::trasporto; $d="Spese Trasporto";break;
+                    case 3: $operazione = ope::gestione; $d="Spese Gestione"; break;
+                    case 4: $operazione = ope::progetto; $d="Finanziamento progetto"; break;
+                    case 5: $operazione = ope::rimborso; $d="Rimborso spese"; break;
+                    case 6: $operazione = ope::maggiorazione; $d="Maggiorazione"; break;
+                    case 7: $operazione = ope::sconto; $d="Sconto"; break;
+                    case 8: $operazione = ope::abbuono;$d="Abbuono"; break;
+                }
+
+
                 //tutti gli utenti
                 $sql = "SELECT DISTINCT id_utenti FROM retegas_dettaglio_ordini WHERE id_ordine=:id_ordine";
                 $n_partecipanti = rd4_rowCount("SELECT D.id_utenti from retegas_dettaglio_ordini D WHERE D.id_ordine='".$id_ordine."' GROUP BY D.id_utenti");
@@ -201,10 +216,24 @@ if(isset($_POST["act"])){
                     $valore_totale = VA_ORDINE($id_ordine);
                 }else{
                     //escludi rettifiche
-                    $valore_totale = VA_ORDINE_ESCLUDI_RETT($id_ordine);
+                    $valore_totale = VA_ORDINE_SOLO_NETTO($id_ordine);
                 }
             }else{
                 //solo il proprio GAS
+
+                $operazione = opeGAS::rettifica;
+                //operazioni con ##
+                switch ($tipo_movimento){
+                    case 1: $operazione = opeGAS::rettifica.' '._USER_ID_GAS; $d="Rettifica"; break;
+                    case 2: $operazione = opeGAS::trasporto.' '._USER_ID_GAS; $d="Spese Trasporto";break;
+                    case 3: $operazione = opeGAS::gestione.' '._USER_ID_GAS; $d="Spese Gestione"; break;
+                    case 4: $operazione = opeGAS::progetto.' '._USER_ID_GAS; $d="Finanziamento progetto"; break;
+                    case 5: $operazione = opeGAS::rimborso.' '._USER_ID_GAS; $d="Rimborso spese"; break;
+                    case 6: $operazione = opeGAS::maggiorazione.' '._USER_ID_GAS; $d="Maggiorazione"; break;
+                    case 7: $operazione = opeGAS::sconto.' '._USER_ID_GAS; $d="Sconto"; break;
+                    case 8: $operazione = opeGAS::abbuono.' '._USER_ID_GAS;$d="Abbuono"; break;
+                }
+
                 $sql = "SELECT DISTINCT D.id_utenti FROM retegas_dettaglio_ordini D inner join maaking_users U on U.userid=D.id_utenti WHERE id_ordine=:id_ordine AND U.id_gas='"._USER_ID_GAS."'";
                 $n_partecipanti = rd4_rowCount("SELECT D.id_utenti from retegas_dettaglio_ordini D inner join maaking_users U on U.userid=D.id_utenti WHERE D.id_ordine='".$id_ordine."' AND U.id_gas='"._USER_ID_GAS."' GROUP BY D.id_utenti");
                 if($applica_rettifiche==1){
@@ -212,7 +241,7 @@ if(isset($_POST["act"])){
                     $valore_totale = VA_ORDINE_GAS($id_ordine,_USER_ID_GAS);
                 }else{
                     //escludi rettifiche
-                    $valore_totale = VA_ORDINE_GAS_ESCLUDI_RETT($id_ordine,_USER_ID_GAS);
+                    $valore_totale = VA_ORDINE_GAS_SOLO_NETTO($id_ordine,_USER_ID_GAS);
                 }
 
             }
@@ -231,7 +260,7 @@ if(isset($_POST["act"])){
                 $valore_totale_user = VA_ORDINE_USER($id_ordine,$row["id_utenti"]);
             }else{
                 //Escludi rettifiche
-                $valore_totale_user = VA_ORDINE_USER_ESCLUDI_RETT($id_ordine,$row["id_utenti"]);
+                $valore_totale_user = VA_ORDINE_USER_SOLO_NETTO($id_ordine,$row["id_utenti"]);
             }
             $importo = ROUND((($valore_totale_user / 100) *  $nuovo_valore),4);
 
@@ -355,21 +384,23 @@ if(isset($_POST["act"])){
 
 
             //--------------------------------RETTIFICA
-            $operazione = ope::rettifica;
-            switch ($tipo_movimento){
-                case 1: $operazione = ope::rettifica; $d="Rettifica"; break;
-                case 2: $operazione = ope::trasporto; $d="Spese Trasporto";break;
-                case 3: $operazione = ope::gestione; $d="Spese Gestione"; break;
-                case 4: $operazione = ope::progetto; $d="Finanziamento progetto"; break;
-                case 5: $operazione = ope::rimborso; $d="Rimborso spese"; break;
-                case 6: $operazione = ope::maggiorazione; $d="Maggiorazione"; break;
-                case 7: $operazione = ope::sconto; $d="Sconto"; break;
-                case 8: $operazione = ope::abbuono;$d="Abbuono"; break;
-            }
+
             if($descrizione_rettifica==""){$descrizione_rettifica=$d;}
 
 
             if($coinvolti==1){
+                $operazione = ope::rettifica;
+                switch ($tipo_movimento){
+                    case 1: $operazione = ope::rettifica; $d="Rettifica"; break;
+                    case 2: $operazione = ope::trasporto; $d="Spese Trasporto";break;
+                    case 3: $operazione = ope::gestione; $d="Spese Gestione"; break;
+                    case 4: $operazione = ope::progetto; $d="Finanziamento progetto"; break;
+                    case 5: $operazione = ope::rimborso; $d="Rimborso spese"; break;
+                    case 6: $operazione = ope::maggiorazione; $d="Maggiorazione"; break;
+                    case 7: $operazione = ope::sconto; $d="Sconto"; break;
+                    case 8: $operazione = ope::abbuono;$d="Abbuono"; break;
+                }
+
                 //tutti gli utenti
                 $sql = "SELECT DISTINCT id_utenti FROM retegas_dettaglio_ordini WHERE id_ordine=:id_ordine";
                 $n_partecipanti = rd4_rowCount("SELECT D.id_utenti from retegas_dettaglio_ordini D WHERE D.id_ordine='".$id_ordine."' GROUP BY D.id_utenti");
@@ -382,6 +413,18 @@ if(isset($_POST["act"])){
                 }
             }else{
                 //solo il proprio GAS
+                $operazione = opeGAS::rettifica;
+                switch ($tipo_movimento){
+                    case 1: $operazione = opeGAS::rettifica.' '._USER_ID_GAS; $d="Rettifica"; break;
+                    case 2: $operazione = opeGAS::trasporto.' '._USER_ID_GAS; $d="Spese Trasporto";break;
+                    case 3: $operazione = opeGAS::gestione.' '._USER_ID_GAS; $d="Spese Gestione"; break;
+                    case 4: $operazione = opeGAS::progetto.' '._USER_ID_GAS; $d="Finanziamento progetto"; break;
+                    case 5: $operazione = opeGAS::rimborso.' '._USER_ID_GAS; $d="Rimborso spese"; break;
+                    case 6: $operazione = opeGAS::maggiorazione.' '._USER_ID_GAS; $d="Maggiorazione"; break;
+                    case 7: $operazione = opeGAS::sconto.' '._USER_ID_GAS; $d="Sconto"; break;
+                    case 8: $operazione = opeGAS::abbuono.' '._USER_ID_GAS;$d="Abbuono"; break;
+                }
+
                 $sql = "SELECT DISTINCT D.id_utenti FROM retegas_dettaglio_ordini D inner join maaking_users U on U.userid=D.id_utenti WHERE id_ordine=:id_ordine AND U.id_gas='"._USER_ID_GAS."'";
                 $n_partecipanti = rd4_rowCount("SELECT D.id_utenti from retegas_dettaglio_ordini D inner join maaking_users U on U.userid=D.id_utenti WHERE D.id_ordine='".$id_ordine."' AND U.id_gas='"._USER_ID_GAS."' GROUP BY D.id_utenti");
                 if($applica_rettifiche==1){
@@ -389,7 +432,7 @@ if(isset($_POST["act"])){
                     $valore_totale = VA_ORDINE_GAS($id_ordine,_USER_ID_GAS);
                 }else{
                     //escludi rettifiche
-                    $valore_totale = VA_ORDINE_GAS_ESCLUDI_RETT($id_ordine,_USER_ID_GAS);
+                    $valore_totale = VA_ORDINE_GAS_SOLO_NETTO($id_ordine,_USER_ID_GAS);
                 }
 
             }
@@ -414,7 +457,7 @@ if(isset($_POST["act"])){
                     $valore_totale_user = VA_ORDINE_USER($id_ordine,$row["id_utenti"]);
                 }else{
                     //Escludi rettifiche
-                    $valore_totale_user = VA_ORDINE_USER_ESCLUDI_RETT($id_ordine,$row["id_utenti"]);
+                    $valore_totale_user = VA_ORDINE_USER_SOLO_NETTO($id_ordine,$row["id_utenti"]);
                 }
                 $importo = ROUND((($valore_totale_user * $nuovo_valore) /  $valore_totale),4);
 
@@ -1016,6 +1059,114 @@ if(isset($_POST["name"])){
 
         break;
 
+        case "qta_tot":
+            $id_dettaglio_ordini = CAST_TO_INT($_POST["pk"],0);
+            $tipo_totale= CAST_TO_INT($_POST["tipo_totale"],1,2);
+
+            $stmt = $db->prepare("SELECT qta_arr, prz_dett_arr, id_utenti, id_ordine from retegas_dettaglio_ordini WHERE id_dettaglio_ordini=:id_dettaglio_ordini");
+            $stmt->bindParam(':id_dettaglio_ordini', $id_dettaglio_ordini, PDO::PARAM_INT);
+            $stmt->execute();
+            $rowo = $stmt->fetch(PDO::FETCH_ASSOC);
+            $id_ordine = $rowo["id_ordine"];
+
+            if (!posso_gestire_ordine($id_ordine)){
+                $res=array("result"=>"KO", "msg"=>"Non ho i permessi per questa operazione;" );
+                echo json_encode($res);
+                break;
+                die();
+            }
+
+            $qta_tot=CAST_TO_FLOAT($_POST["value"],0);
+            if($tipo_totale>1){
+                $new_q = ROUND(($qta_tot / $rowo["prz_dett_arr"]),4);
+                $stmt = $db->prepare("UPDATE retegas_dettaglio_ordini
+                                    SET qta_arr=:new_q
+                                    WHERE
+                                    id_dettaglio_ordini=:id_dettaglio_ordini
+                                    LIMIT 1");
+                $stmt->bindParam(':id_dettaglio_ordini', $id_dettaglio_ordini, PDO::PARAM_INT);
+                $stmt->bindParam(':new_q', $new_q, PDO::PARAM_STR);
+
+                $prz_dett_arr = $rowo["prz_dett_arr"];
+                $qta_arr = $new_q;
+            }else{
+                $new_q = ROUND(($qta_tot / $rowo["qta_arr"]),4);
+                $stmt = $db->prepare("UPDATE retegas_dettaglio_ordini
+                                    SET prz_dett_arr=:new_q
+                                    WHERE
+                                    id_dettaglio_ordini=:id_dettaglio_ordini
+                                    LIMIT 1");
+                $stmt->bindParam(':id_dettaglio_ordini', $id_dettaglio_ordini, PDO::PARAM_INT);
+                $stmt->bindParam(':new_q', $new_q, PDO::PARAM_STR);
+
+                $prz_dett_arr = $new_q;
+                $qta_arr = $rowo["qta_arr"];
+            }
+
+
+            $stmt->execute();
+            if($stmt->rowCount()==1){
+                //AGGIORNO AMICI
+                rettifica_amici($id_dettaglio_ordini, $qta_arr);
+                $res=array("result"=>"OK", "msg"=>"Quantità aggiornata", "qta_arr"=>$qta_arr,"id"=>$id_dettaglio_ordini,"prz_dett_arr"=>$prz_dett_arr );
+                echo json_encode($res);
+                break;
+                die();
+            }else{
+                $res=array("result"=>"KO", "msg"=>"Problemi..." );
+                echo json_encode($res);
+                break;
+                die();
+
+            }
+
+
+        break;
+
+        case "qta_ord":
+            $id_dettaglio_ordini = CAST_TO_INT($_POST["pk"],0);
+            $stmt = $db->prepare("SELECT id_utenti, id_ordine from retegas_dettaglio_ordini WHERE id_dettaglio_ordini=:id_dettaglio_ordini");
+            $stmt->bindParam(':id_dettaglio_ordini', $id_dettaglio_ordini, PDO::PARAM_INT);
+            $stmt->execute();
+            $rowo = $stmt->fetch(PDO::FETCH_ASSOC);
+            $id_ordine = $rowo["id_ordine"];
+
+            if (!posso_gestire_ordine($id_ordine)){
+                $res=array("result"=>"KO", "msg"=>"Non ho i permessi per questa operazione;" );
+                echo json_encode($res);
+                break;
+                die();
+            }
+
+            $qta_ord=CAST_TO_FLOAT($_POST["value"],0);
+
+            $stmt = $db->prepare("UPDATE retegas_dettaglio_ordini
+                                    SET qta_ord=:qta_ord,
+                                        qta_arr=:qta_ord
+                                    WHERE
+                                    id_dettaglio_ordini=:id_dettaglio_ordini
+                                    LIMIT 1");
+            $stmt->bindParam(':id_dettaglio_ordini', $id_dettaglio_ordini, PDO::PARAM_INT);
+            $stmt->bindParam(':qta_ord', $qta_ord, PDO::PARAM_STR);
+            $stmt->execute();
+            if($stmt->rowCount()==1){
+                //AGGIORNO AMICI
+                rettifica_amici($id_dettaglio_ordini, $qta_arr);
+                $res=array("result"=>"OK", "msg"=>"Quantità aggiornata", "qta_arr"=>$qta_ord,"id"=>$id_dettaglio_ordini );
+                echo json_encode($res);
+                break;
+                die();
+            }else{
+                $res=array("result"=>"KO", "msg"=>"Problemi..." );
+                echo json_encode($res);
+                break;
+                die();
+
+            }
+
+
+        break;
+
         case "qta_arr":
             $id_dettaglio_ordini = CAST_TO_INT($_POST["pk"],0);
             $stmt = $db->prepare("SELECT id_utenti, id_ordine from retegas_dettaglio_ordini WHERE id_dettaglio_ordini=:id_dettaglio_ordini");
@@ -1044,7 +1195,7 @@ if(isset($_POST["name"])){
             if($stmt->rowCount()==1){
                 //AGGIORNO AMICI
                 rettifica_amici($id_dettaglio_ordini, $qta_arr);
-                $res=array("result"=>"OK", "msg"=>"Quantità aggiornata" );
+                $res=array("result"=>"OK", "msg"=>"Quantità aggiornata","id"=>$id_dettaglio_ordini );
                 echo json_encode($res);
                 break;
                 die();
@@ -1086,7 +1237,7 @@ if(isset($_POST["name"])){
             $stmt->bindParam(':prz_dett_arr', $prz_dett_arr, PDO::PARAM_STR);
             $stmt->execute();
             if($stmt->rowCount()==1){
-                $res=array("result"=>"OK", "msg"=>"Prezzo aggiornato" );
+                $res=array("result"=>"OK", "msg"=>"Prezzo aggiornato", "id"=>$id_dettaglio_ordini );
                 echo json_encode($res);
                 break;
                 die();

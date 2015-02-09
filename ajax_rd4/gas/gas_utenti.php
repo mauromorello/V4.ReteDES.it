@@ -77,7 +77,7 @@ foreach ($rows as $row) {
     if((_USER_PERMISSIONS & perm::puo_gestire_utenti) OR $row["isactive"]==1){
 
         $z .= '<tr rel="'.$useridEnc.'" class="'.$status.'">
-                <td><label class="checkbox"><input type="checkbox" name="box_users"><i></i></label></td>
+                <td><label class="checkbox"><input type="checkbox" class="utente" value="'.$row["userid"].'"><i></i></label></td>
                 <td>'.$p1.'</td>
                 <td><a href="#ajax_rd4/user/scheda.php?id='.$useridEnc.'">'.$row["fullname"].'</a></td>
                 <td>'.$p2.'  '.$row["email"].'</td>
@@ -108,7 +108,15 @@ $a='    <div class="" style="max-height:600px;overflow-y:auto;">
                             </table>
         </div>
         <div class="well margin-top-5">
-        <p>Se selezionati: <button class="btn btn-default"><i class="fa fa-envelope"></i>   manda un messaggio</button> <button class="btn btn-success"><i class="fa fa-plus"></i>   attivali</button></p>
+            <label class="pull-right ">
+            <input class="selectall" type="checkbox"> Seleziona / deseleziona tutti
+            </label>
+            <p><button class="btn btn-default" id="manda_messaggio_a_utenti"><i class="fa fa-envelope"></i>   manda agli utenti selezionati un messaggio.</button></p>
+
+            <label>Messaggio:</label>
+            <textarea  id="messaggio_a_utenti" style="width:100%;"></textarea>
+            <p></p>
+            <div class="alert alert-info"><strong>ATTENZIONE:</strong> Non abusare di questa funzione. A nessuno piace ricevere mail inutili.</div>
         </div>
 
         ';
@@ -221,6 +229,7 @@ $wg_utentigas->header = array(
 
         console.log("pagefunction");
         //------------HELP WIDGET
+        document.title = '<?php echo "ReteDES.it :: $page_title";?>';
         <?php echo help_render_js('gas_utenti');?>
         //------------END HELP WIDGET
         var oTable= $('#dt_utenti_gas').dataTable({
@@ -228,6 +237,71 @@ $wg_utentigas->header = array(
                                         });
         var id;
         var messaggio;
+
+        $('#manda_messaggio_a_utenti').click(function(){
+            console.log("Click");
+            values = $('input:checkbox:checked.utente').map(function () {
+              return this.value;
+            }).get();
+            messaggio = $('#messaggio_a_utenti').val();
+            console.log("Messaggio " + messaggio);
+            if(!messaggio){
+                ko("Messaggio vuoto");
+            }
+            else if(values.length==0){
+                ko("Nessun destinatario");
+            }else{
+            console.log(values);
+
+            $.SmartMessageBox({
+                title : "Messaggia",
+                content : "Confermi? la mail sarà inviata a " + values.length + " utenti",
+                buttons : "[Esci][INVIA]"
+            }, function(ButtonPress, Value) {
+
+                if(ButtonPress=="INVIA"){
+
+                    $.ajax({
+                          type: "POST",
+                          url: "ajax_rd4/gas/_act.php",
+                          dataType: 'json',
+                          data: {act: "messaggia_utenti", values : values, messaggio : messaggio},
+                          context: document.body
+                        }).done(function(data) {
+                            if(data.result=="OK"){
+                                    ok(data.msg);
+                                    //location.reload();
+                            }else{
+                                ko(data.msg);
+                            }
+
+                        });
+                }
+            });
+
+
+
+
+        }//messaggio vuoto
+
+        });
+
+
+        $('.selectall').click(function(event) {  //on click
+            console.log("Click select");
+            if(this.checked) { // check select status
+                $('.utente').each(function() { //loop through each checkbox
+                    this.checked = true;  //select all checkboxes with class "checkbox1"
+                });
+            }else{
+                $('.utente').each(function() { //loop through each checkbox
+                    this.checked = false; //deselect all checkboxes with class "checkbox1"
+                });
+            }
+        });
+
+
+
 
 
         $('body').on('hidden.bs.modal', '.modal', function () {
