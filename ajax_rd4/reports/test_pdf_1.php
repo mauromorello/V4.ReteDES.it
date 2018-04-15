@@ -172,7 +172,7 @@ Nessuna opzione per questo report.
         $('.show_pdf').click(function(){
             var $this = $(this);
             var id = $this.data('id_ordine');
-            open('POST', 'http://retegas.altervista.org/gas4/ajax_rd4/reports/test_pdf_1.php', {id:id, o:'pdf', dummy:<?php echo rand(1000,9999); ?> }, '_blank');
+            open('POST', '<?php echo APP_URL; ?>/ajax_rd4/reports/test_pdf_1.php', {id:id, o:'pdf', dummy:<?php echo rand(1000,9999); ?> }, '_blank');
             return false;
         });
 

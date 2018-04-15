@@ -2,6 +2,7 @@
 require_once("../../../lib/config.php");
 
 $id_listino = CAST_TO_INT($_GET['id_listino'],0);
+
 $page = (int)$_GET['page']; // get the requested page
 $limit = (int)$_GET['rows']; // get how many rows we want to have into the grid
 $sidx = $_GET['sidx']; // get index row - i.e. user click to sort
@@ -44,8 +45,9 @@ if(!isset($_POST["oper"])){
             $search .= " AND is_disabled=0 ";
     }
 
-    $stmt = $db->prepare("SELECT COUNT(*) as count FROM  retegas_articoli WHERE id_listini = :id_listino $search LIMIT 1;");
+    $stmt = $db->prepare("SELECT COUNT(*) as count FROM  retegas_articoli WHERE id_listini=:id_listino  $search LIMIT 1;");
     $stmt->bindParam(':id_listino', $id_listino, PDO::PARAM_INT);
+    
     if($_GET['descrizione_articoli']<>""){$stmt->bindParam(':descrizione_articoli', $descrizione_articoli, PDO::PARAM_STR);}
     if($_GET['codice']<>""){$stmt->bindParam(':codice', $codice, PDO::PARAM_STR);}
     if($_GET['articoli_opz_1']<>""){$stmt->bindParam(':articoli_opz_1', $articoli_opz_1, PDO::PARAM_STR);}
@@ -94,7 +96,7 @@ if(!isset($_POST["oper"])){
         $responce->rows[$i]['cell']=array(  //$row[id_articoli],
                                             clean($row[codice]),
                                             clean($row[descrizione_articoli]),
-                                            $row[prezzo]+0,
+                                            sprintf("%0.2f",round($row[prezzo],2)+0),
 
                                             $row[u_misura],
                                             $row[misura],
@@ -130,10 +132,11 @@ if(!isset($_POST["oper"])){
     $stmt->execute();
     $rowA = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    $stmt = $db->prepare("SELECT * FROM  retegas_listini WHERE id_listini = :id_listini AND id_utenti='"._USER_ID."';");
+    $stmt = $db->prepare("SELECT * FROM  retegas_listini WHERE id_listini = :id_listini;");
     $stmt->bindParam(':id_listini', $rowA["id_listini"], PDO::PARAM_INT);
     $stmt->execute();
-    if($stmt->rowCount()==1){
+    if(posso_gestire_listino($rowA["id_listini"])){
+    //if($stmt->rowCount()==1){
         //CASTING
         $codice = trim(strip_tags(CAST_TO_STRING($_POST["codice"])));
 
@@ -245,6 +248,7 @@ if(!isset($_POST["oper"])){
         $stmt->execute();
         if($stmt->rowCount()==1){
             $res=array("result"=>"OK", "msg"=>"Articolo aggiornato" );
+            //l_l_n($rowA["id_listini"],"Modificato articolo: $id_articolo, $codice, $descrizione_articoli, $prezzo, $u_misura, $misura, $qta_scatola, $qta_minima, $articoli_unico, $ingombro, $articoli_opz_1, $articoli_opz_2, $articoli_opz_2, $articoli_note, $is_disabled");
         }else{
             $res=array("result"=>"KO", "msg"=>"Salvataggio non riuscito","id"=>$id_articolo );
         }
@@ -265,7 +269,9 @@ if(!isset($_POST["oper"])){
     $stmt = $db->prepare("SELECT * FROM  retegas_listini WHERE id_listini = :id_listini AND id_utenti='"._USER_ID."';");
     $stmt->bindParam(':id_listini', $id_listino, PDO::PARAM_INT);
     $stmt->execute();
-    if($stmt->rowCount()==1){
+
+    if(posso_gestire_listino($id_listino)){
+    //if($stmt->rowCount()==1){
         //CASTING
         $codice = trim(strip_tags(CAST_TO_STRING($_POST["codice"])));
 
@@ -398,6 +404,7 @@ if(!isset($_POST["oper"])){
 
         if($stmt->rowCount()==1){
             $res=array("result"=>"OK", "msg"=>"Articolo aggiunto", "id"=>$id );
+            //l_l_n($id_listino,"Aggiunto monoarticolo: $id, $codice, $descrizione_articoli, $prezzo, $u_misura, $misura, $qta_scatola, $qta_minima, $articoli_unico, $ingombro, $articoli_opz_1, $articoli_opz_2, $articoli_opz_2, $articoli_note, $is_disabled");
         }else{
             $res=array("result"=>"KO", "msg"=>"Aggiunta non riuscita $sql","id"=>0 );
         }
@@ -435,16 +442,29 @@ if(!isset($_POST["oper"])){
         $stmt = $db->prepare("SELECT * FROM  retegas_listini WHERE id_listini = :id_listini AND id_utenti='"._USER_ID."';");
         $stmt->bindParam(':id_listini', $rowA["id_listini"], PDO::PARAM_INT);
         $stmt->execute();
-        if($stmt->rowCount()==1){
-            $stmt = $db->prepare("DELETE FROM  retegas_articoli WHERE id_articoli = :id_articoli  LIMIT 1;");
-            $stmt->bindParam(':id_articoli', $id_articolo, PDO::PARAM_INT);
+        if(posso_gestire_listino($rowA["id_listini"])){
+
+            //SE ESISTE UN ORDINE APERTO O CHIUSO NON CONFERMATO
+            $sql="SELECT count(*) as conto FROM retegas_ordini WHERE id_listini=:id_listini AND ((data_apertura<NOW() AND data_chiusura>NOW()) OR (data_chiusura<NOW() AND is_printable=0)) AND id_stato<>1;";
+            $stmt = $db->prepare($sql);
+            $stmt->bindParam(':id_listini', $rowA["id_listini"] , PDO::PARAM_INT);
             $stmt->execute();
-            if($stmt->rowCount()==1){
-                $num++;
+            $rowOIE = $stmt->fetch();
+
+            if($rowOIE["conto"]==0){
+                $stmt = $db->prepare("DELETE FROM  retegas_articoli WHERE id_articoli = :id_articoli  LIMIT 1;");
+                $stmt->bindParam(':id_articoli', $id_articolo, PDO::PARAM_INT);
+                $stmt->execute();
+                if($stmt->rowCount()==1){
+                    $num++;
+                    //l_l_n($rowA["id_listini"],"Eliminato articolo: $id_articolo");
+
+                }else{
+                    $ok=false;
+                }
             }else{
                 $ok=false;
             }
-
 
         }else{
             $ok=false;

@@ -6,7 +6,9 @@
     $page_title = "Richieste carico";
     $page_id = "cassa_richieste";
 
-
+    if(!(_USER_PERMISSIONS & perm::puo_gestire_la_cassa)){
+        echo rd4_go_back("Non ho i permessi per la cassa");die;
+    }
 
     $i = 0;
     if(_GAS_CASSA_BONIFICO_AUTOMATICO){
@@ -16,8 +18,10 @@
     }
 
   if(_USER_PERMISSIONS & perm::puo_gestire_la_cassa){
-      $sql = "select O.id_option, O.id_user, O.valore_real, O.valore_text,O.timbro, O.note_1 from retegas_options O where O.id_gas=1 and O.chiave='PREN_MOV_CASSA' ";
+      $sql = "select O.id_option, O.id_user, O.valore_real, O.valore_text,O.timbro, O.note_1 from retegas_options O where O.id_gas=:id_gas and O.chiave='PREN_MOV_CASSA' ";
       $stmt = $db->prepare($sql);
+      $id_gas = _USER_ID_GAS;
+      $stmt->bindValue(':id_gas', $id_gas, PDO::PARAM_INT);
       $stmt->execute();
       $rows = $stmt->fetchAll();
 
@@ -43,6 +47,7 @@
                             <h3>'.$fullname.', <small>'.$gas.'</small></h3>
                             <p>Richiesta di carico di Eu. <strong>'.$row["valore_real"].'</strong></p>
                             <p>'.$row["valore_text"].'</p>
+                            <p>Del: <strong>'.conv_datetime_from_db($row["timbro"]).'</p>
                             <p class="note">Documento: <strong>'.$row["note_1"].'</strong></p>
                         </div>
                         <div class="col-md-2">
@@ -96,8 +101,10 @@
         <?php echo help_render_js($page_id); ?>
         //-------------------------HELP
         $('.add_richiesta').click(function(){
+            $.blockUI();
             var $this = $(this);
             id_option = $this.data('id_option');
+            
             $.ajax({
                           type: "POST",
                           url: "ajax_rd4/cassa/_act.php",
@@ -105,6 +112,7 @@
                           data: {act: "add_richiesta", id : id_option},
                           context: document.body
                         }).done(function(data) {
+                            $.unblockUI();
                             if(data.result=="OK"){
                                 ok(data.msg);
                                 $this.closest('.richiesta').hide();
@@ -116,6 +124,7 @@
 
         });
         $('.del_richiesta').click(function(){
+            $.blockUI();
             var $this = $(this);
             id_option = $this.data('id_option');
             $.ajax({
@@ -125,6 +134,7 @@
                           data: {act: "del_richiesta", id : id_option},
                           context: document.body
                         }).done(function(data) {
+                            $.unblockUI();
                             if(data.result=="OK"){
                                 ok(data.msg);
                                 $this.closest('.richiesta').hide();

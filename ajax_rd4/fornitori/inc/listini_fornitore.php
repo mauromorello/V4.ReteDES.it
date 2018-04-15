@@ -2,7 +2,7 @@
 require_once("../../../lib/config.php");
 
 if(isset($_POST["id_ditta"])){
-    $stmt = $db->prepare("SELECT * FROM retegas_listini WHERE id_ditte=:id_ditta ORDER BY data_valido DESC;");
+    $stmt = $db->prepare("SELECT * FROM retegas_listini WHERE id_ditte=:id_ditta AND is_deleted=0 ORDER BY data_valido DESC;");
     $stmt->bindParam(':id_ditta', $_POST['id_ditta'], PDO::PARAM_STR);
     $stmt->execute();
     $rows = $stmt->fetchAll();
@@ -51,7 +51,7 @@ if(isset($_POST["id_ditta"])){
             $li.= '<li class="list-group-item" >
 
                     '.$icona_scade.'
-                    <strong class="font-sm" style="cursor:pointer" rel="C"><a href="#ajax_rd4/listini/listino.php?id='.$row["id_listini"].'">'.$row["descrizione_listini"].'</a></strong><br>
+                    <strong class="font-sm" style="cursor:pointer" rel="C"><a href="#ajax_rd4/listini/listino.php?id='.$row["id_listini"].'">'.$row["descrizione_listini"].'</a></strong>, '.$row["descrizione_listini"].'</a></strong> '.(conv_date_from_db($row["data_creazione"]) <> "00/00/0000" ? "del ".conv_date_from_db($row["data_creazione"]) : "").'<br>
                     <i class="fa fa-user"></i>&nbsp;'.$utente["fullname"].' <i class="fa fa-home"></i>&nbsp;'.$utente["descrizione_gas"].'&nbsp;&nbsp;<small class="font-xs"><i class="fa fa-cubes"></i>&nbsp;<b>'.$articoli["conto"].'</b></small><br>
                     '.$magazzino.'
                     '.$scade.'

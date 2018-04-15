@@ -71,10 +71,10 @@ $oa =' <li>
 
     }
 
-    $content ='<p>Listino: <a href="#">'.$row["descrizione_listini"].'</a></p>
-               <p>Ditta: <a href="#">'.$row["descrizione_ditte"].'</a></p>';
+    $content ='<p>Ordine: <a href="'.APP_URL.'/#ajax_rd4/ordini/ordine.php?id='.$row["id_ordini"].'">'.$row["descrizione_ordini"].'</a></p>
+               <p>Ditta: <a href="'.APP_URL.'/#ajax_rd4/fornitori/scheda.php?id='.$row["id_ditte"].'">'.$row["descrizione_ditte"].'</a></p>';
 
-    $a=array('title'=> "#".$row["id_ordini"]." ".$row["descrizione_ordini"],
+    $a=array('title'=> '#'.$row["id_ordini"]." ".$row["descrizione_ordini"],
              'start'=> $row["data_apertura"],
              'end'=> $row["data_chiusura"],
              'className' => array("event", $color),
@@ -83,7 +83,36 @@ $oa =' <li>
              'ciccio' => $ciccio,
              'contenuto' => $content,
              'gestore' => $gestore);
-    array_push($o,$a);
+             
+    //ORDINE NASCOSTO PER IL GAS
+                $show_this = true;
+                $is_nascosto_icon="";
+
+                $sqln = "SELECT valore_text FROM retegas_options WHERE
+                        chiave='_ORDINE_NASCOSTO_GAS' AND id_ordine= :id_ordine AND id_gas='"._USER_ID_GAS."' LIMIT 1;";
+                $stmt = $db->prepare($sqln);
+                $stmt->bindParam(':id_ordine', $row["id_ordini"] , PDO::PARAM_INT);
+                $stmt->execute();
+                $rowna = $stmt->fetch();
+                if($rowna["valore_text"]=="SI"){
+                    $is_nascosto = true;
+                }else{
+                    $is_nascosto = false;
+                }
+                if(posso_gestire_ordine_come_gas($row["id_ordini"])){
+                    $add_this= true;    
+                }else{
+                    if($is_nascosto){
+                        $add_this= false;
+                    }else{
+                        $add_this= true;    
+                    }
+                }
+            
+            //ORDINE NASCOSTO PER IL GAS         
+    if($add_this){         
+        array_push($o,$a);
+    }
 }
 //[{  "allday":"false",
 //    "borderColor":"#666666",

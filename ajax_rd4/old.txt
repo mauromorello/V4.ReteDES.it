@@ -1,0 +1,156 @@
+//ORDINI IO COINVOLTO
+
+            $stmt = $db->prepare("SELECT    O.id_ordini,
+                                            O.data_apertura,
+                                            O.data_chiusura,
+                                            O.is_printable,
+                                            O.descrizione_ordini,
+                                            O.id_utente as id_referente,
+                                            R.id_utente_referenze as id_referente_gas,
+                                            R.convalida_referenze
+                                    FROM retegas_referenze R
+                                    INNER JOIN retegas_ordini O on O.id_ordini=R.id_ordine_referenze
+                                  WHERE R.id_gas_referenze=:id_gas and id_utente_referenze>0
+                                  ORDER BY O.data_apertura DESC;");
+            $id_gas = _USER_ID_GAS;
+            $stmt->bindParam(':id_gas', $id_gas , PDO::PARAM_INT);
+            $stmt->execute();
+            $rows = $stmt->fetchAll();
+
+
+        foreach($rows as $row){
+
+                $gestore = "";
+                $gestoreGAS = "";
+                $supervisore = "";
+                $partecipante ="";
+                $umile_aiutante ='';
+
+                $apertura = strtotime($row["data_apertura"]);
+                $chiusura = strtotime($row["data_chiusura"]);
+                $today = strtotime(date("Y-m-d H:i"));
+                if($apertura>$today){
+                    $color="text-info";
+                    $tooltip="PROGRAMMATO";
+                    $label='<span class="pull-right txt-color-blue note hidden-xs">PROGRAMMATO</span>';
+                    $n_programmati++;
+                }
+                if($chiusura>$today AND $apertura<$today){
+                    $color="text-success";
+                    $tooltip="APERTO";
+                    $label='<span class="pull-right txt-color-green note hidden-xs">APERTO</span>';
+                    $n_aperti++;
+                }
+                if(($chiusura<$today) and $row["is_printable"]<1 ){
+                    $color="text-danger";
+                    $tooltip="CHIUSO";
+                    $label='<span class="pull-right txt-color-red note hidden-xs">CHIUSO</span>';
+                    $n_chiusi++;
+                }
+                if($row["is_printable"]>0){
+                    if($row["convalida_referenze"]>0){
+                        $color="text-muted";
+                        $tooltip="CONVALIDATO";
+                        $label='<span class="pull-right txt-muted note hidden-xs">CONVALIDATO</span>';
+                        $n_convalidati++;
+                    }else{
+                        $color="text-muted";
+                        $tooltip="MANCA LA CONVALIDA DEL TUO GAS";
+                        $label='<span class="pull-right txt-color-red note hidden-xs"><i class="fa fa-warning"></i> CONVALIDATO</span>';
+                    }
+                }
+
+
+
+                $stmt = $db->prepare("select * from retegas_dettaglio_ordini where id_utenti='"._USER_ID."' AND id_ordine=:id_ordine");
+                $stmt->bindParam(':id_ordine', $row["id_ordini"] , PDO::PARAM_INT);
+                $stmt->execute();
+
+                if($stmt->rowCount()>0){
+                    $partecipante ='<a href="#ajax_rd4/reports/la_mia_spesa.php?id='.$row["id_ordini"].'""><i class="fa fa-shopping-cart"></i></a> Partecipante';
+                    $euro_partecipante='<i class="fa fa-euro text-primary"></i> '._NF(VA_ORDINE_USER($row["id_ordini"],_USER_ID)).' ';
+                    $n_acquistato++;
+                }else{
+                    $partecipante ='';
+                    $euro_partecipante='';
+                }
+
+
+
+
+                if($row["id_referente"]==_USER_ID){
+                    $gestore = '<a href="#ajax_rd4/ordini/edit.php?id='.$row["id_ordini"].'""><i class="fa fa-gears"></i></a> Gestore';
+                }else{
+                    if($row["id_referente_gas"]==_USER_ID){
+                        $gestoreGAS ='<a href="#ajax_rd4/ordini/edit.php?id='.$row["id_ordini"].'""><i class="fa fa-home"></i></a> Gestore GAS';
+                    }else{
+                        if(_USER_PERMISSIONS & perm::puo_vedere_tutti_ordini){
+                            $supervisore='<a href="#ajax_rd4/ordini/edit.php?id='.$row["id_ordini"].'""><i class="fa fa-star"></i></a> Supervisore';
+                        }
+                    }
+
+                }
+
+
+                $stmt = $db->prepare("select * from retegas_options where id_user='"._USER_ID."' AND id_ordine=:id_ordine AND chiave='AIUTO_ORDINI' and valore_int=1");
+                $stmt->bindParam(':id_ordine', $row["id_ordini"] , PDO::PARAM_INT);
+                $stmt->execute();
+                if($stmt->rowCount()>0){
+                    $umile_aiutante ='<a href="#ajax_rd4/ordini/ordine.php?id='.$row["id_ordini"].'""><i class="fa fa-hand-o-up "></i></a> Umile aiutante';
+                }else{
+                    $umile_aiutante ='';
+                }
+
+
+                if($partecipante<>'' | $supervisore<>'' | $gestoreGAS<>'' | $gestore<>'' | $umile_aiutante<>''){
+                    $tot_ordini_a_che_fare++;
+                }
+
+                $tot_ordini++;
+                $r .= '<li style="border-bottom:1px dotted #ccc;">
+                        '.$label.'
+                        <i class="fa fa-circle visible-xs pull-left '.$color.'"></i>
+                        <span>
+                            #'.$row["id_ordini"].' <a href="#ajax_rd4/ordini/ordine.php?id='.$row["id_ordini"].'">'.$row["descrizione_ordini"].'</a><br>
+                            <i class="note">'.$partecipante.' '.$euro_partecipante.' '.$gestore.' '.$gestoreGAS.' '.$supervisore.' '.$umile_aiutante.'</i>
+                        </span>
+                      </li>';
+
+        }
+
+                $r_pre = '  <div>
+                <div class="">
+                <form class="smart-form">
+                <section>
+                    <label class="input"> <i class="icon-append fa fa-filter"></i>
+                        <input type="text" placeholder="filtra tra gli ordini..." id="listfilter">
+                    </label>
+                </section>
+                <section class="font-xs">
+                    <div class="inline-group">
+                        <label class="checkbox">
+                            <input type="checkbox" name="checkbox-inline" id="show_programmati">
+                            <i></i><strong>'.$n_programmati.'</strong> Programmati </label>
+                        <label class="checkbox">
+                            <input type="checkbox" name="checkbox-inline"  id="show_aperti">
+                            <i></i><strong>'.$n_aperti.'</strong> Aperti</label>
+                        <label class="checkbox">
+                            <input type="checkbox" name="checkbox-inline"  id="show_chiusi">
+                            <i></i><strong>'.$n_chiusi.'</strong> Chiusi</label>
+                        <label class="checkbox">
+                            <input type="checkbox" name="checkbox-inline"  id="show_convalidati">
+                            <i></i><strong>'.$n_convalidati.'</strong> Convalidati</label>
+                        <label class="checkbox">
+                            <input type="checkbox" name="checkbox-inline"  id="show_partecipo">
+                            <i></i><strong>'.$n_acquistato.'</strong> Ho acquistato</label>
+                    </div>
+                </section>
+                </form>
+                </div>
+                <ul id="list" style="height:400px;overflow-y:auto" class="list-unstyled">';
+
+
+
+        $r=$r_pre.$r."</ul>";
+        
+        //ORDINI IO COINVOLTO

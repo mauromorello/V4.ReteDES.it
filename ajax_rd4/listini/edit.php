@@ -1,10 +1,13 @@
 <?php
-$page_title = "Gestisci articoli ";
+
 require_once("inc/init.php");
 require_once("../../lib_rd4/class.rd4.listino.php");
 
 $ui = new SmartUI;
 $converter = new Encryption;
+
+$page_title = "Gestisci articoli";
+$page_id = "gestisci_articoli";
 
 //var_dump($_POST, $_FILES);
 
@@ -23,10 +26,16 @@ if(posso_gestire_listino($id_listino)){
     //$buttons[] ='<a href="javascript:void(0);"><i class="fa fa-unlock fa-2x fa-border text-success" rel="popover" data-placement="left" data-original-title="Permessi" data-content="Puoi lavorare su questo listino perchè ne sei il proprietario"></i></a>';
     $editable = "editable";
 }else{
-    echo "Non puoi gestire questo listino";die();
+    echo rd4_go_back("Non puoi gestire questo listino");die();
 }
 
 //-----------------------------------------------------ARTICOLI
+if($L->is_multiditta){
+    $iladd='';
+}else{
+    $iladd='<button  class="btn btn-default btn-circle btn-lg" onclick="$(\'#jqgrid_iladd\').click();$(\'.ui-search-toolbar\').hide();$(\'#save_riga\').removeClass(\'hidden\');$(\'#save_cancel\').removeClass(\'hidden\');"><i class="fa fa-plus"></i></button>';
+}
+
 $a = '
         <div class="well well-sm well-light">
             <!--
@@ -36,7 +45,7 @@ $a = '
             </span>
             -->
             <button  class="btn btn-default btn-circle btn-lg" onclick="$(\'.ui-search-toolbar\').toggle();"><i class="fa fa-filter "></i></button>
-            <button  class="btn btn-default btn-circle btn-lg" onclick="$(\'#jqgrid_iladd\').click();$(\'.ui-search-toolbar\').hide();$(\'#save_riga\').removeClass(\'hidden\');$(\'#save_cancel\').removeClass(\'hidden\');"><i class="fa fa-plus"></i></button>
+            '.$iladd.'
             <button  class="btn btn-warning btn-circle btn-lg hidden" id="duplica_riga"><i class="fa fa-copy "></i></button>
             <button  class="btn btn-warning btn-circle btn-lg hidden" id="edita_riga" onclick="$(\'#jqgrid_iledit\').click();$(\'.ui-search-toolbar\').hide();"><i class="fa fa-pencil "></i></button>
             <button  class="btn btn-success btn-circle btn-lg hidden" id="save_riga" onclick="$(\'#jqgrid_ilsave\').click();"><i class="fa fa-save "></i></button>
@@ -49,13 +58,42 @@ $a = '
             <div id="pjqgrid"></div>
         </div>
         <div class="margin-top-10 well well-sm well-light">
-                <span>Usa le frecce a destra per ingrandire la tabella. Seleziona quante righe devono essere visualizzate per ogni pagina.</span>
+
                 <a id="aumenta_altezza" class="btn btn-circle btn-default pull-right"><i class="fa fa-arrow-down"></i></a>
                 <a id="diminuisci_altezza" class="btn btn-circle btn-default pull-right"><i class="fa fa-arrow-up"></i></a>
                 <span class="btn btn-circle btn-default pull-right" data-action="minifyMenu" style=""><i class="fa fa-arrow-left"></i></span>
                 <div class="clearfix"></div>
-        </div>
-
+                <hr>
+            <div class="text-center">
+            <h1 class="txt-bold">se hai selezionato articoli...</h1>
+            <hr>
+            <form class="form-inline text-right" role="form">
+                <fieldset>
+                    <div class="form-group">
+                        <label class="" for="applica_percentuale">...varia il il loro prezzo di questa percentuale:</label>
+                        <input type="text" class="form-control" id="valore_percentuale" placeholder="Inserisci una percentuale">
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="variazione_percentuale">
+                        Applica
+                    </button>
+                </fieldset>
+                <p class="note">La variazione percentuale può anche essere negativa;</p>
+            <hr>
+            </form>
+            <form class="form-inline text-right" role="form">
+                <fieldset>
+                    <div class="form-group">
+                        <label class="" for="applica_assoluto">...varia il il loro prezzo di questa cifra:</label>
+                        <input type="text" class="form-control" id="valore_assoluto" placeholder="Inserisci un valore">
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="variazione_assoluta">
+                        Applica
+                    </button>
+                </fieldset>
+                <p class="note">Il valore da aggiungere può anche essere negativo. Se un articolo dovesse avere il suo prezzo negativo, questo verrà rettificato a zero.</p>
+            </form>
+            </div>
+         </div>
       ';
 
 $options = array(   "editbutton" => false,
@@ -70,18 +108,49 @@ $wg_articoli->header = array(
     "icon" => 'fa fa-cube'
     );
 
+
+//SE C'E' UN ORDINE APERTO O CHIUSO NON CONVALIDATO
+$rowOs = $L->lista_ordini_che_bloccano_eliminazioni();
+$noie=0;
+
+foreach($rowOs as $rowO){
+    $oie.='<p>#'.$rowO["id_ordini"].' '.$rowO["descrizione_ordini"].'</p>';
+    $noie++;
+}
+if($noie==0){
+    $oie='';
+}else{
+    if(_USER_PERMISSIONS & perm::puo_gestire_retegas){
+        $oie='<div class="panel panel-red padding-10"><h3>Ordini che bloccano il listino:</h3>'.$oie.'</div>';
+    }else{
+        if(posso_gestire_listino($L->id_listini)){
+            $oie='<p class="alert alert-danger">Ci sono <strong>'.$noie.'</strong> ordini aperti o chiusi ma non confermati che limitano l\'operatività su questo listino.</p>';
+            $buttons[]='<a class="btn btn-link" href="#ajax_rd4/listini/listini_log-php?id='.$L->id_listini.'"><i class="fa fa-list"></i> LOG Listino</a>';
+        }else{
+            $oie='';
+        }
+    }
+
+}
+
+
+
 ?>
 
-<?php echo $L->navbar_listino(); ?>
-
+<?php echo $L->navbar_listino($buttons); ?>
+<?php echo $oie; ?>
 <section id="widget-grid" class="margin-top-10">
     <div class="row">
         <!-- PRIMA COLONNA-->
         <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
             <?php echo $wg_articoli->print_html(); ?>
-            <?php echo help_render_html('edit_articoli',$page_title); ?>
+        </article>
+        <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+            <?php echo help_render_html($page_id,$page_title); ?>
         </article>
     </div>
+
+    <br /><br />
 </section>
 <!-- Dynamic Modal -->
                         <div class="modal fade" id="remoteModalImport" tabindex="-1" role="dialog" aria-labelledby="remoteModalLabel" aria-hidden="true">
@@ -110,7 +179,7 @@ $wg_articoli->header = array(
 
 <script type="text/javascript">
 
-
+    $(document).prop('title', 'ReteDes::<?echo $page_title?>');
     pageSetUp();
 
 
@@ -125,6 +194,8 @@ $wg_articoli->header = array(
 
     var pagefunction = function(){
 
+
+
         <?php if(!$incompleto){ ?>
         loadScript("js/plugin/jqgrid/jquery.jqGrid.min.js", run_jqgrid_function);
         <?php } ?>
@@ -136,7 +207,8 @@ $wg_articoli->header = array(
             var is_editable = <?php echo $proprietario; ?>;
 
             jQuery("#jqgrid").jqGrid({
-               url:'ajax_rd4/listini/inc/articoli.php?id_listino=<?php echo $id_listino?>',
+               //url:'ajax_rd4/listini/inc/articoli.php?id_listino=<?php echo $id_listino?>',
+               url:'ajax_rd4/listini/articoli.php?id_listino=<?php echo $id_listino?>',
             datatype: "json",
                colNames:[   'Codice',
                             'Descrizione',
@@ -229,11 +301,12 @@ $wg_articoli->header = array(
                //sortname: 'id_articolo',
                viewrecords: true,
                 //sortorder: "desc",
-            editurl: "ajax_rd4/listini/inc/articoli.php?id_listino=<?php echo $id_listino?>",
-
+            //editurl: "ajax_rd4/listini/inc/articoli.php?id_listino=<?php echo $id_listino?>",
+            editurl: "ajax_rd4/listini/articoli.php?id_listino=<?php echo $id_listino?>",
             caption:"",
             gridComplete : function(){
                 console.log("Grid Complete!");
+
             }
 
         });
@@ -248,7 +321,11 @@ $wg_articoli->header = array(
         jQuery("#jqgrid").jqGrid('navGrid','#pjqgrid',{
                 edit:false,
                 add:false,
+                <?php if($noie>0){ ?>
+                del:false,
+                <?php }else{ ?>
                 del:true,
+                <?php } ?>
                 search:false
         });
 
@@ -373,7 +450,9 @@ $wg_articoli->header = array(
                         }).done(function(data) {
                             if(data.result=="OK"){
                                 ok(data.msg);
-                                $('#jqgrid').trigger( 'reloadGrid' );
+                                //$('#jqgrid').DataTable().ajax.reload();
+                                //$('#jqgrid').trigger( 'reloadGrid' );
+                                $("#jqgrid").jqGrid('setGridParam',{datatype:'json'}).trigger('reloadGrid');
                             }else{
                                 ko(data.msg)
                             ;}
@@ -437,16 +516,71 @@ $wg_articoli->header = array(
                 }
             });
             //resize to fit page size
-                jQuery("#jqgrid").jqGrid('setGridWidth', $("#jqgcontainer").width());
-                jQuery("#jqgrid").jqGrid('setGridHeight', $("#jqgcontainer").height() - ($("#gbox_jqgrid").height() - $('#gbox_jqgrid .ui-jqgrid-bdiv').height()));
+            jQuery("#jqgrid").jqGrid('setGridWidth', $("#jqgcontainer").width());
+            jQuery("#jqgrid").jqGrid('setGridHeight', $("#jqgcontainer").height() - ($("#gbox_jqgrid").height() - $('#gbox_jqgrid .ui-jqgrid-bdiv').height()));
+
+            $("#variazione_percentuale").click(function(){
+                var grid = jQuery("#jqgrid").jqGrid();
+                var rowKey = grid.getGridParam("selrow");
+                if (!rowKey)
+                    ko("Nessun articolo selezionato");
+                else {
+                    var selectedIDs = grid.getGridParam("selarrrow");
+                    var valore_percentuale = $("#valore_percentuale").val();
+                    $.ajax({
+                      type: "POST",
+                      url: "ajax_rd4/listini/_act.php",
+                      dataType: 'json',
+                      data: {act: "varia_percentuale", selectedIDs : selectedIDs, id_listino:<?php echo $id_listino; ?>, valore_percentuale:valore_percentuale},
+                      context: document.body
+                    }).done(function(data) {
+                        if(data.result=="OK"){
+                            ok(data.msg);
+                            $('#jqgrid').trigger( 'reloadGrid' );
+                            for (var i = 0; i < selectedIDs.length; i++) {
+                                grid.setSelection(selectedIDs[i]);
+                            }
+                        }else{
+                            ko(data.msg)
+                        ;}
+                    });
+                }
+            })
+            $("#variazione_assoluta").click(function(){
+                var grid = jQuery("#jqgrid").jqGrid();
+                var rowKey = grid.getGridParam("selrow");
+                if (!rowKey)
+                    ko("Nessun articolo selezionato");
+                else {
+                    var selectedIDs = grid.getGridParam("selarrrow");
+                    var valore_assoluto = $("#valore_assoluto").val();
+                    $.ajax({
+                      type: "POST",
+                      url: "ajax_rd4/listini/_act.php",
+                      dataType: 'json',
+                      data: {act: "varia_assoluto", selectedIDs : selectedIDs, id_listino:<?php echo $id_listino; ?>, valore_assoluto:valore_assoluto},
+                      context: document.body
+                    }).done(function(data) {
+                        if(data.result=="OK"){
+                            ok(data.msg);
+                            $('#jqgrid').trigger( 'reloadGrid' );
+                        }else{
+                            ko(data.msg)
+                        ;}
+                    });
+                }
+            })
+
+
 
 
         } // end jqgrid init
 
 
         //-------------------------HELP
-        <?php echo help_render_js("edit_articoli"); ?>
+        <?php echo help_render_js($page_id); ?>
         //-------------------------HELP
+
 
 
     } // end pagefunction

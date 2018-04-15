@@ -123,7 +123,7 @@ $title_navbar='<i class="fa fa-pencil fa-2x pull-left"></i> Rettifica Totale ord
 ?>
 <?php echo $O->navbar_ordine(); ?>
 
-<div class="panel panel-blueLight padding-10" >
+<div class="well well-sm margin-top-10" >
     <?php echo $togli_filtro?>
     <p class="font-xl">Rettifica il DETTAGLIO di ogni singola RIGA<?php echo $titolo_utente.$titolo_codice?></span></p>
 
@@ -182,9 +182,9 @@ $title_navbar='<i class="fa fa-pencil fa-2x pull-left"></i> Rettifica Totale ord
 
 </div>
 
-<div class="panel padding-10 panel-blueDark">
+<div class="well well-sm margin-top-10">
     <p class="font-xl">Aggiungi articoli <br><span class="note">Cosa, quanto e a chi vuoi te.</span></p>
-<form action="ajax_rd4/rettifiche/_act.php" method="post" id="nuovo_articolo_form" class="smart-form">
+    <form action="ajax_rd4/rettifiche/_act.php" method="post" id="nuovo_articolo_form" class="smart-form">
 
     <div class="row">
     <section class="col col-4 col-sm-6">
@@ -209,7 +209,7 @@ $title_navbar='<i class="fa fa-pencil fa-2x pull-left"></i> Rettifica Totale ord
                 <input id="quantita_nuovo_articolo" type="text" name="quantita_nuovo_articolo" placeholder="Quantità">
             </label>
     </section>
-      </div>
+    </div>
 
 
 
@@ -223,6 +223,8 @@ $title_navbar='<i class="fa fa-pencil fa-2x pull-left"></i> Rettifica Totale ord
     </footer>
 
 </form>
+<div class="alert alert-danger"><strong>ATTENZIONE</strong> gli articoli aggiunti in questo modo non creano i rispettivi movimenti della cassa, per cui è probabile che i totali non corrispondano; E' compito del cassiere, dopo che è stato convalidato l'ordine, ALLINEARE nuovamente la cassa, a meno che il tuo gas usi l'opzione di allineamento automatico alla convalida.</div>
+
 </div>
 
 <section id="widget-grid" class="margin-top-10">
@@ -284,6 +286,7 @@ $title_navbar='<i class="fa fa-pencil fa-2x pull-left"></i> Rettifica Totale ord
                                 dataType: 'json'
                             },
                             success: function(data, newValue) {
+                                
                                 if(data.result=="OK") {
                                     $('.qta_edit_tot[data-pk='+ data.id+']')
                                         .text( parseFloat(newValue)
@@ -654,7 +657,7 @@ $title_navbar='<i class="fa fa-pencil fa-2x pull-left"></i> Rettifica Totale ord
                                         success: function(data, status) {
                                             //console.log(data.result + ' - ' + data.msg);
                                             if(data.result=="OK"){
-                                                //ok(data.msg);
+                                                //BIGBOX HARDENCODED ELIMINAZIONE ICONA CHIUSURA
                                                 $.bigBox({
                                                     title : data.title,
                                                     content : data.desc+"<br>Per visualizzarlo nella tabella ricarica la pagina!",
@@ -663,7 +666,7 @@ $title_navbar='<i class="fa fa-pencil fa-2x pull-left"></i> Rettifica Totale ord
                                                     icon : "fa fa-check",
                                                     number : ""
                                                 }, function() {
-                                                    closedthis();
+                                                    //closedthis();
                                                 });
                                             }else{
                                                 ko(data.msg);

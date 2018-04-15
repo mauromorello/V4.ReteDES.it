@@ -3,14 +3,44 @@ require_once("inc/init.php");
 
 $ui = new SmartUI;
 $page_title="Anagrafica utente";
+$page_id="user_anagrafica";
+
+$U = new user(_USER_ID);
+
+$query_p = "SELECT valore_text, valore_int from retegas_options WHERE id_user="._USER_ID." AND chiave='_USER_SECONDA_EMAIL' LIMIT 1;";
+$stmt = $db->prepare($query_p);
+$stmt->execute();
+$row_p = $stmt->fetch();
+if(CAST_TO_STRING($row_p["valore_text"])<>""){
+    if($row_p["valore_int"]>0){
+        $seconda_mail_verificata='<note id="status_seconda_mail" class="text-success">QUESTO INDIRIZZO  E\' STATO VERIFICATO</note>';
+    }else{
+        $seconda_mail_verificata='<note id="status_seconda_mail" class="text-danger">QUESTO INDIRIZZO NON E\' ANCORA STATO VERIFICATO</note>';
+    }
+}else{
+    $seconda_mail_verificata='<note id="status_seconda_mail" class="muted"></note>';
+}
+$query_p = "SELECT valore_text, valore_int from retegas_options WHERE id_user="._USER_ID." AND chiave='_USER_TERZA_EMAIL'  LIMIT 1;";
+$stmt = $db->prepare($query_p);
+$stmt->execute();
+$row_p = $stmt->fetch();
+if(CAST_TO_STRING($row_p["valore_text"])<>""){
+    if($row_p["valore_int"]>0){
+        $terza_mail_verificata='<note id="status_terza_mail" class="text-success">QUESTO INDIRIZZO E\' STATO VERIFICATO</note>';
+    }else{
+        $terza_mail_verificata='<note id="status_terza_mail" class="text-danger">QUESTO INDIRIZZO NON E\' STATO VERIFICATO</note>';
+    }
+}else{
+    $terza_mail_verificata='<note id="status_terza_mail" class="text-muted"></note>';
+}
 
 //---------------------------------------------------ANAGRAFICA UTENTE
 
 $a ='
 <form id="account-utente" class="smart-form" action="ajax_rd4/user/_act.php" novalidate="novalidate" method="POST">
-                                <header>
+                                <legend>
                                     Accesso al sito
-                                </header>
+                                </legend>
 
                                 <fieldset>
 
@@ -29,9 +59,9 @@ $a ='
                                 </footer>
                                </form>
                                <form id="password-utente" class="smart-form" action="ajax_rd4/user/_act.php" novalidate="novalidate">
-                                <header>
+                                <legend>
                                     Cambio di password
-                                </header>
+                                </legend>
                                <fieldset>
                                     <section>
                                         <label class="label">Vecchia password</label>
@@ -62,9 +92,9 @@ $a ='
                             </form>
 
                             <form action="ajax_rd4/user/_act.php" id="checkout-form" class="smart-form" novalidate="novalidate">
-                            <header>
+                            <legend>
                                     Anagrafica utente
-                                </header>
+                                </legend>
                             <fieldset>
 
                                     <section class="">
@@ -85,6 +115,12 @@ $a ='
                                         </label>
                                     </section>
 
+                                    <section class="">
+                                        <label class="input"> <i class="icon-prepend fa fa-credit-card"></i>
+                                            <input type="text" name="tessera" placeholder="Tessera GAS" value="'._USER_TESSERA.'">
+                                        </label>
+                                    </section>
+
                             </fieldset>
 
 
@@ -93,6 +129,32 @@ $a ='
                                 <input type="hidden" name="act" value="save_anagrafica">
 
 
+                                <button type="submit" class="btn btn-primary">
+                                    Salva le modifiche
+                                </button>
+                            </footer>
+                        </form>
+                        <form action="ajax_rd4/user/_act.php" id="email_extra" class="smart-form" novalidate="novalidate">
+                            <legend>
+                                    Indirizzi aggiuntivi
+                            </legend>
+                            <fieldset>
+                                    <section class="">
+                                        <label class="input"> <i class="icon-prepend fa fa-envelope-o"></i>
+                                            <input type="email" name="seconda_email" placeholder="Aggiungi una seconda E-mail" value="'._USER_SECONDA_EMAIL.'">
+                                            '.$seconda_mail_verificata.'
+                                        </label>
+
+                                    </section>
+                                    <section class="">
+                                        <label class="input"> <i class="icon-prepend fa fa-envelope-o"></i>
+                                            <input type="email" name="terza_email" placeholder="Aggiungi una terza E-mail" value="'._USER_TERZA_EMAIL.'">
+                                            '.$terza_mail_verificata.'
+                                        </label>
+                                    </section>
+                            </fieldset>
+                            <footer>
+                                <input type="hidden" name="act" value="save_email_extra">
                                 <button type="submit" class="btn btn-primary">
                                     Salva le modifiche
                                 </button>
@@ -140,22 +202,20 @@ $wg_ana_img->header = array(
 
 
 $g='    <form action="ajax_rd4/user/_act.php" id="geolocate-form" class="smart-form" novalidate="novalidate">
-        <header>
-                                    Geolocalizzazione
-                                </header>
+        <legend>Localizzazione</legend>
 
         <fieldset>
                     <section>
                         <label for="address1" class="input">
-                            <input id="address1" type="text" name="address1" placeholder="Città" value="'._USER_CITTA.'">
+                            <input id="address1" type="text" name="address1" placeholder="Città" value="'._USER_CITTA.' '._USER_INDIRIZZO.'">
                         </label>
                      </section>
 
-                    <section>
+                    <!--<section>
                         <label for="address2" class="input">
                             <input id="address2" type="text" name="address2" placeholder="Indirizzo" value="'._USER_INDIRIZZO.'">
                         </label>
-                    </section>
+                    </section>-->
 
         </fieldset>
 
@@ -164,7 +224,7 @@ $g='    <form action="ajax_rd4/user/_act.php" id="geolocate-form" class="smart-f
         <input id="lat" type="hidden" name="lat" value="'._USER_LAT.'">
         <input id="lng" type="hidden" name="lng" value="'._USER_LNG.'">
         <input type="hidden" name="act" value="save_geolocalizzazione">
-        <button id="cerca" class="btn btn-primary" disabled="disabled">
+        <button id="cerca" class="btn btn-primary">
             Salva le modifiche
         </button>
         <span class="note">Una volta inserita la città e la via (e se saranno state riconosciute dal sistema), sarà possibile salvarle premendo questo pulsante</span>
@@ -196,25 +256,136 @@ $wg_map->header = array(
     <div class="row">
         <!-- PRIMA COLONNA-->
         <article class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
-
-            <?php echo $wg_map->print_html(); ?>
-            <?php echo $wg_ana_img->print_html(); ?>
+            <div class="well well-sm"><?php echo $g; ?></div>
+            <div class="well well-sm">
+                <legend>Immagine del profilo</legend>
+                <?php echo $i; ?>
+            </div>
         </article>
         <article class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+            <div class="well well-sm"><?php echo $a; ?></div>
+        </article>
+        <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+        <!--
+        <div class="well well-sm">
+            <form action="ajax_rd4/user/_act.php" id="user_form_custom_1_DEL" class="smart-form" novalidate="novalidate">
+                <legend>Campi personalizzati dal tuo GAS</legend>
+                <?php if($U->custom_1_privato<2){?>
+                <fieldset>
+                    <label class="label margin-top-5">Campo personalizzato 1: <?php echo $U->custom_1_nome; ?></label>
+                    <label class="input"> <i class="icon-prepend fa fa-pencil"></i>
+                        <input placeholder="<?php echo $U->custom_1 ?>" type="text" id="custom_1" name="custom_1" value="<?php echo $U->custom_1 ?>" <?php echo $U->custom_1_proprieta==1 ? ' DISABLED="DISABLED" ':'' ;?>>
+                    </label>
+                </fieldset>
+                <?php }?>
 
-            <?php echo $wg_ana->print_html(); ?>
-            <?php echo help_render_html("user_anagrafica",$page_title); ?>
+                <input id="act" type="hidden" name="act" value="do_user_custom_1">
+                <footer>
+                    <button type="submit" class="btn btn-primary">
+                        Salva i nuovi valori
+                    </button>
+                </footer>
+            </form>
+        </div>
+        -->
+        <div class="well well-sm">
+            <h3>Campi definiti dal tuo GAS:</h3>
+            <?php if($U->custom_1_privato<2){?>
+            <form action="ajax_rd4/user/_act.php" id="user_form_custom_1" novalidate="novalidate">
+            <fieldset>
+            <div class="form-group margin-top-5">
+                <label class="control-label col-md-3" for="appendbutton"><b><?php echo $U->custom_1_nome; ?></b></label>
+                <div class="col-md-9">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <div class="input-group">
+                                <input id="act" type="hidden" name="act" value="do_user_custom_1">
+                                <input placeholder="<?php echo $U->custom_1 ?>" type="text" id="custom_1" name="custom_1" value="<?php echo $U->custom_1 ?>" <?php echo $U->custom_1_proprieta==1 ? ' DISABLED="DISABLED" ':'' ;?> class="form-control">
+                                <div class="input-group-btn">
+                                    <button class="btn btn-primary" type="submit" <?php echo $U->custom_1_proprieta==1 ? ' DISABLED="DISABLED" ':'' ;?>>
+                                        SALVA
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            </fieldset>
+            </form>
+            <?php }?>
+            <?php if($U->custom_2_privato<2){?>
+            <form action="ajax_rd4/user/_act.php" id="user_form_custom_2" novalidate="novalidate">
+            <fieldset>
+            <div class="form-group margin-top-5">
+                <label class="control-label col-md-3" for="appendbutton"><b><?php echo $U->custom_2_nome; ?></b></label>
+                <div class="col-md-9">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <div class="input-group">
+                                <input id="act" type="hidden" name="act" value="do_user_custom_2">
+                                <input placeholder="<?php echo $U->custom_2 ?>" type="text" id="custom_2" name="custom_2" value="<?php echo $U->custom_2 ?>" <?php echo $U->custom_2_proprieta==1 ? ' DISABLED="DISABLED" ':'' ;?> class="form-control">
+                                <div class="input-group-btn">
+                                    <button class="btn btn-primary" type="submit" <?php echo $U->custom_2_proprieta==1 ? ' DISABLED="DISABLED" ':'' ;?>>
+                                        SALVA
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            </fieldset>
+            </form>
+            <?php } ?>
+            <?php if($U->custom_3_privato<2){?>
+            <form action="ajax_rd4/user/_act.php" id="user_form_custom_3" novalidate="novalidate">
+            <fieldset>
+            <div class="form-group margin-top-5">
+                <label class="control-label col-md-3" for="appendbutton"><b><?php echo $U->custom_3_nome; ?></b></label>
+                <div class="col-md-9">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <div class="input-group">
+                                <input id="act" type="hidden" name="act" value="do_user_custom_3">
+                                <input placeholder="<?php echo $U->custom_3 ?>" type="text" id="custom_3" name="custom_3" value="<?php echo $U->custom_3 ?>" <?php echo $U->custom_3_proprieta==1 ? ' DISABLED="DISABLED" ':'' ;?> class="form-control">
+                                <div class="input-group-btn">
+                                    <button class="btn btn-primary" type="submit" <?php echo $U->custom_3_proprieta==1 ? ' DISABLED="DISABLED" ':'' ;?>>
+                                        SALVA
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            </fieldset>
+            </form>
+            <?php }?>
+        </div>
+
         </article>
 
     </div>
+    <div class="row">
+        <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+            <?php echo help_render_html($page_id,$page_title); ?>
+        </article>
 
+    </div>
 </section>
 <script type="text/javascript">
 
     pageSetUp();
 
     var pagefunction = function() {
-
+        var delay = (function(){
+          var timer = 0;
+          return function(callback, ms){
+            clearTimeout (timer);
+            timer = setTimeout(callback, ms);
+          };
+        })();
         <?php echo help_render_js("user_anagrafica"); ?>
 
         var  initDropzone = function (){
@@ -268,10 +439,110 @@ $wg_map->header = array(
             //-----------------------------------------------DROPZONE DEMO
         }
 
+        var $user_form_custom_1 = $('#user_form_custom_1').validate({
+            submitHandler : function(form) {
+
+                $(form).ajaxSubmit({
+                        type:"POST",
+                        dataType: 'json',
+                        success : function(data) {
+                                if(data.result=="OK"){
+                                    ok(data.msg);}else{ko(data.msg);}
+                                }
+                    });
+            },
+            errorPlacement : function(error, element) {
+                error.insertAfter(element.parent());
+            }
+        });
+        var $user_form_custom_2 = $('#user_form_custom_2').validate({
+            submitHandler : function(form) {
+
+                $(form).ajaxSubmit({
+                        type:"POST",
+                        dataType: 'json',
+                        success : function(data) {
+                                if(data.result=="OK"){
+                                    ok(data.msg);}else{ko(data.msg);}
+                                }
+                    });
+            },
+            errorPlacement : function(error, element) {
+                error.insertAfter(element.parent());
+            }
+        });
+        var $user_form_custom_3 = $('#user_form_custom_3').validate({
+            submitHandler : function(form) {
+
+                $(form).ajaxSubmit({
+                        type:"POST",
+                        dataType: 'json',
+                        success : function(data) {
+                                if(data.result=="OK"){
+                                    ok(data.msg);}else{ko(data.msg);}
+                                }
+                    });
+            },
+            errorPlacement : function(error, element) {
+                error.insertAfter(element.parent());
+            }
+        });
+
+        var $checkoutForm1 = $('#email_extra').validate({
+        // Rules for form validation
+            rules : {
+
+                seconda_email : {
+                    required : false,
+                    email : true
+                },
+                terza_email : {
+                    required : false,
+                    email : true
+                }
+
+            },
+
+            // Messages for form validation
+            messages : {
 
 
+                seconda_email : {
+                    required : 'Serve un indirizzo mail',
+                    email : 'Serve un indirizzo mail VALIDO'
+                },
+                terza_email : {
+                    required : 'Serve un indirizzo mail',
+                    email : 'Serve un indirizzo mail VALIDO'
+                }
+            },
 
-        var $checkoutForm = $('#checkout-form').validate({
+            // Ajax form submition
+            submitHandler : function(form) {
+
+                $(form).ajaxSubmit({
+                    type:"POST",
+                    dataType: 'json',
+                    success : function(data) {
+                        
+                            if(data.result=="OK"){
+                                ok(data.msg);
+                                $('#status_seconda_mail').html("IN ATTESA DI VERIFICA...");
+                                $('#status_terza_mail').html("IN ATTESA DI VERIFICA...");
+                            }else{
+                                    ko(data.msg);
+                                }
+                            }
+                });
+            },
+
+            // Do not change code below
+            errorPlacement : function(error, element) {
+                error.insertAfter(element.parent());
+            }
+        });
+
+        var $checkoutForm2 = $('#checkout-form').validate({
         // Rules for form validation
             rules : {
                 fullname : {
@@ -303,12 +574,13 @@ $wg_map->header = array(
 
             // Ajax form submition
             submitHandler : function(form) {
-
+                $.blockUI();
                 $(form).ajaxSubmit({
                     type:"POST",
                     dataType: 'json',
                     success : function(data) {
-                        //$("#checkout-form").addClass('submited');
+                        
+                            $.unblockUI();
                             if(data.result=="OK"){
                                 ok(data.msg);}else{ko(data.msg);}
                             }
@@ -433,7 +705,7 @@ $wg_map->header = array(
                         type:"POST",
                         dataType: 'json',
                         success : function(data) {
-                            //$("#checkout-form").addClass('submited');
+                            
                                 if(data.result=="OK"){
                                     ok(data.msg);}else{ko(data.msg);}
                                 }
@@ -465,7 +737,7 @@ $wg_map->header = array(
 
         function codeAddress() {
               var markers = [];
-              var address = document.getElementById('address1').value + ', ' + document.getElementById('address2').value;
+              var address = document.getElementById('address1').value;
               geocoder.geocode( { 'address': address}, function(results, status) {
                 if (status == google.maps.GeocoderStatus.OK) {
                   map.setCenter(results[0].geometry.location);
@@ -483,13 +755,13 @@ $wg_map->header = array(
                   $('#lat').val (results[0].geometry.location.lat());
                   $('#lng').val (results[0].geometry.location.lng());
                   console.log("Riconosciuto");
-                  $("#cerca").removeAttr("disabled");
+
 
                 } else {
                   //alert('Geocode was not successful for the following reason: ' + status);
                   ko("Indirizzo non riconosciuto :(");
                   console.log("Non Riconosciuto");
-                  $("#cerca").attr("disabled","disabled");
+
                 }
 
               });
@@ -500,10 +772,15 @@ $wg_map->header = array(
         console.log("Inizio Initialized");
         initialize();
         codeAddress();
+        $('#address1').keyup(function() {
+            delay(function(){
+              codeAddress();
+            }, 1000 );
+        });
 
-        $('#address1, #address2').change(function(){
-            codeAddress();
-        })
+        //$('#address1, #address2').change(function(){
+        //    codeAddress();
+        //})
 
         loadScript("js/plugin/dropzone/dropzone.min.js",initDropzone);
     };

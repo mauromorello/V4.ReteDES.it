@@ -1,9 +1,16 @@
 <?php
 require_once("inc/init.php");
 require_once("../../lib_rd4/class.rd4.listino.php");
+require_once("../../lib_rd4/class.rd4.gas.php");
+
+require_once("../../lib_rd4/htmlpurifier-4.7.0/library/HTMLPurifier.auto.php");
+
 
 if(!empty($_GET["act"])){
     switch ($_GET["act"]) {
+
+
+
         case "exp_csv":
 
         $id_listino=CAST_TO_INT($_GET["id"]);
@@ -19,6 +26,8 @@ if(!empty($_GET["act"])){
             $exporter->addRow(array(html_entity_decode($row["codice"]),html_entity_decode($row[descrizione_articoli]),$row[prezzo],$row[u_misura],$row[misura],html_entity_decode($row[ingombro]),$row[qta_scatola],$row[qta_minima],html_entity_decode($row[articoli_note]),$row[articoli_unico],html_entity_decode($row[articoli_opz_1]),html_entity_decode($row[articoli_opz_2]),html_entity_decode($row[articoli_opz_3]), $row[is_disabled]));
         }
         $exporter->finalize();
+        l_l_i($id_listino,"Esportazione CSV");
+
         die();
 
 
@@ -108,7 +117,7 @@ if(!empty($_GET["act"])){
         $objWriter->save($filePath);
         readfile($filePath);
         unlink($filePath);
-
+        l_l_i($id_listino,"Esportazione XLS");
 
         die();
         break;
@@ -117,6 +126,115 @@ if(!empty($_GET["act"])){
 }
 if(!empty($_POST["act"])){
     switch ($_POST["act"]) {
+
+    case "do_segnalazione_listino":
+
+        $messaggio_testo  = trim(strip_tags(CAST_TO_STRING($_POST["messaggio"])));
+        $id_listino = CAST_TO_INT($_POST["id_listino"],0);
+
+
+
+        if($id_listino==0){
+            $res=array("result"=>"KO", "msg"=>"Manca id lsitino."  );
+            echo json_encode($res);die();
+        }
+
+        $L = new listino($id_listino);
+
+        if($messaggio_testo==""){
+            $res=array("result"=>"KO", "msg"=>"Messaggio vuoto."  );
+            echo json_encode($res);die();
+        }else{
+            
+            $id_segnalante=_USER_ID;
+            
+            $sql="INSERT INTO retegas_segnalazioni (id_segnalante, id_listino, testo_segnalazione,data_segnalazione) VALUES (:id_segnalante,:id_listino,:testo_segnalazione,NOW());";
+            $stmt = $db->prepare($sql);
+            $stmt->bindParam(':id_listino', $id_listino, PDO::PARAM_INT);
+            $stmt->bindParam(':id_segnalante', $id_segnalante, PDO::PARAM_INT);
+            $stmt->bindParam(':testo_segnalazione', $messaggio_testo, PDO::PARAM_STR);
+            $stmt->execute();
+            
+            $messaggio_testo = '<hr>
+            <strong>SEGNALAZIONE LISTINO #'.$id_listino.' <a href="'.$L->url_listino.'" TARGET="_BLANK">'.$L->descrizione_listini.'</a></strong>
+
+            </hr>
+            <br><br>'.$messaggio_testo;
+            
+        }
+
+        foreach($L->lista_referenti_extra() as $row){
+            $r[]=array( 'email' => $row["email"],
+                        'name' => $row["fullname"]
+                        );    
+        }
+        
+            
+        $r[]=array( 'email' => $L->email_proprietario_listino,
+                    'name' => $L->fullmane_proprietario_listino
+                    );
+        $r[]=array( 'email' => _EMAIL_SUPERADMIN,
+                    'name' => _FULLNAME_SUPERADMIN
+                    );
+        
+
+        $fullnameFROM = _USER_FULLNAME;
+        $mailFROM = _USER_MAIL;
+        $oggetto = "[reteDES] "._USER_FULLNAME." segnala listino #".$id_listino;
+        $profile = new Template('../../email_rd4/basic_2.html');
+        $profile->set("fullnameFROM", _USER_FULLNAME );
+        $profile->set("messaggio", $messaggio_testo);
+
+        $messaggio = $profile->output();
+        //echo $messaggio; die();
+
+        SEmailMulti($r,$fullnameFROM,$mailFROM,$oggetto,$messaggio,"V4segnalaListino");
+        //SSparkPostMulti($r,$fullnameFROM,$mailFROM,$oggetto,$messaggio,"V4richiestaInfo");
+
+        unset ($profile);
+
+
+        $res=array("result"=>"OK", "msg"=>"Segnalazione inviata"  );
+
+        echo json_encode($res);
+    break;    
+        
+    case "note_listino":
+        if (!posso_gestire_listino($_POST['pk'])){
+            echo json_encode(array("result"=>"KO", "msg"=>"Non hai i permessi necessari" ));
+            die();
+         }
+        $note = CAST_TO_STRING($_POST['value']);
+
+         //Note ordine
+        $config = HTMLPurifier_Config::createDefault();
+        $config->set('CSS.MaxImgLength', null);
+        $config->set('HTML.MaxImgLength', null);
+        $config->set('HTML.SafeIframe', true);
+        $config->set('URI.SafeIframeRegexp', '%^(https?:)?//(www\.youtube(?:-nocookie)?\.com/embed/|player\.vimeo\.com/video/)%'); //allow YouTube and Vimeo
+        $config->set('Attr.AllowedFrameTargets', array('_blank','_self'));
+
+        $purifier = new HTMLPurifier($config);
+        $note = $purifier->purify($note);
+
+
+
+         $stmt = $db->prepare("UPDATE retegas_listini SET note_listino = :note_listino
+                             WHERE id_listini=:id_listini LIMIT 1;");
+
+         $stmt->bindParam(':note_listino', $note , PDO::PARAM_STR);
+         $stmt->bindParam(':id_listini', $_POST['pk'], PDO::PARAM_INT);
+
+         $stmt->execute();
+        if($stmt->rowCount()<>1){
+            $res=array("result"=>"KO", "msg"=>"Errore." );
+        }else{
+            $res=array("result"=>"OK", "msg"=>"OK" );
+        }
+        echo json_encode($res);
+        l_l_i($_POST['pk'],"Set note listino: $note");
+     break;
+
 
     case "attiva_aiuta_a_gestire":
         $id_listini=CAST_TO_INT($_POST["id_listini"]);
@@ -140,6 +258,7 @@ if(!empty($_POST["act"])){
         }
 
         echo json_encode($res);
+        l_l_i($_POST['pk'],"Gestore extra aggiunto: $id_user");
     break;
     case "elimina_aiuta_a_gestire":
         $id_listini=CAST_TO_INT($_POST["id_listini"]);
@@ -161,7 +280,7 @@ if(!empty($_POST["act"])){
         }else{
             $res=array("result"=>"KO", "msg"=>"Errore nel db." );
         }
-
+        l_l_i($_POST['pk'],"Gestore extra tolto: $id_user");
         echo json_encode($res);
     break;
     case "exp_htm":
@@ -213,12 +332,14 @@ if(!empty($_POST["act"])){
         }
         $t .= '</table></html>';
         echo $t;
+
+        l_l_i($_POST["id"],"Export HTML");
         die();
         break;
 
     case "aggiungi_listino":
 
-    if($_POST["value"]==""){
+    if(trim($_POST["value"])==""){
         echo json_encode(array("result"=>"KO", "msg"=>"Non puoi lasciare questo campo vuoto"));
         die();
     }
@@ -228,10 +349,17 @@ if(!empty($_POST["act"])){
         die();
     }
 
+    if(CAST_TO_INT($_POST["id"],0)>0){
+        $is_multiditta=0;
+    }else{
+        $is_multiditta=1;
+    }
+
     //esiste
-    $stmt = $db->prepare("INSERT INTO retegas_listini (id_utenti,descrizione_listini, id_ditte, tipo_listino) VALUES ('"._USER_ID."',:nome,:id_ditta,0) ;");
+    $stmt = $db->prepare("INSERT INTO retegas_listini (id_utenti,descrizione_listini, id_ditte, tipo_listino, is_multiditta, data_creazione) VALUES ('"._USER_ID."',:nome,:id_ditta,0,:is_multiditta, NOW()) ;");
     $stmt->bindParam(':nome', $_POST['value'], PDO::PARAM_STR);
     $stmt->bindParam(':id_ditta', $_POST['id'], PDO::PARAM_INT);
+    $stmt->bindParam(':is_multiditta', $is_multiditta, PDO::PARAM_INT);
     $stmt->execute();
 
     $id = $db->lastInsertId();
@@ -243,6 +371,7 @@ if(!empty($_POST["act"])){
     }
 
     echo json_encode($res);
+    l_l_n($id,"Creazione listino ".$_POST['value']);
 
     break;
     //-------------------------------------------------------------------------------------
@@ -276,7 +405,7 @@ if(!empty($_POST["act"])){
         $mailTO = $L->email_proprietario_listino;
         $fullnameTO = $L->fullmane_proprietario_listino;
 
-        $oggetto = "[reteDES.it] richiesta di condivisione listino da ".$fullnameFROM;
+        $oggetto = "[reteDES] richiesta di condivisione listino da ".$fullnameFROM;
         $profile = new Template('../../email_rd4/referente_extra_listino.html');
 
         $profile->set("FULLNAME", $fullnameTO );
@@ -285,8 +414,8 @@ if(!empty($_POST["act"])){
         $profile->set("MESSAGGIO", $value );
         $profile->set("DESCRIZIONE_LISTINO", $L->descrizione_listini );
         $profile->set("DESCRIZIONE_DITTA", $L->descrizione_ditte );
-        $profile->set("URL_LISTINO", 'http://retegas.altervista.org/gas4/?#ajax_rd4/listini/listino.php?id='.$L->id_listini );
-        $profile->set("URL_FORNITORE", 'http://retegas.altervista.org/gas4/?#ajax_rd4/fornitori/scheda.php?id='.$L->id_ditte );
+        $profile->set("URL_LISTINO", APP_URL.'/?#ajax_rd4/listini/listino.php?id='.$L->id_listini );
+        $profile->set("URL_FORNITORE", APP_URL.'/?#ajax_rd4/fornitori/scheda.php?id='.$L->id_ditte );
 
 
         $messaggio = $profile->output();
@@ -295,17 +424,116 @@ if(!empty($_POST["act"])){
             $res=array("result"=>"OK", "msg"=>"Richiesta consegnata." );
 
         }else{
-            $res=array("result"=>"KO", "msg"=>"Utente inserito, ma mail non inviata." );
+            $res=array("result"=>"KO", "msg"=>"Utente inserito, ma mail non inviata perchè indirizzo utente non valido" );
 
         }
 
     }else{
         $res=array("result"=>"KO", "msg"=>"Errore nel db." );
     }
-
+    l_l_i($id,"Offerta gestore listino extra");
     echo json_encode($res);
 
 
+    break;
+    case "aggiungi_multiditta":
+        //Controllare se posso manovrare il listino multiditta
+        $id_listino = CAST_TO_INT($_POST["id_listino"],0);
+            if(!posso_gestire_listino($id_listino)){
+               $res=array("result"=>"KO", "msg"=>"Listino non tuo." );
+                echo json_encode($res);
+                die();
+        }
+        //Per ogni articolo passato
+        $articoli=CAST_TO_ARRAY($_POST["selectedIDs"]);
+        foreach($articoli as $id_articolo){
+            //Prendere l'id_ditta e la descrizione ditta originale
+            $stmt = $db->prepare("SELECT A.codice, D.id_ditte, D.descrizione_ditte FROM retegas_articoli A inner join retegas_listini L on L.id_listini=A.id_listini LEFT JOIN retegas_ditte D on D.id_ditte=L.id_ditte WHERE A.id_articoli=:id_articoli;");
+            $stmt->bindParam(':id_articoli', $id_articolo, PDO::PARAM_INT);
+            $stmt->execute();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            $id_ditte=CAST_TO_INT($row["id_ditte"],0);
+            $descrizione_ditte=$row["descrizione_ditte"];
+            $codice=$row["codice"];
+
+            //verificare se nel listino multiditta non vi sia lo stesso codice
+            $stmt = $db->prepare("SELECT count(*) as conto FROM retegas_articoli A WHERE A.codice=:codice AND id_listini=:id_listini;");
+            $stmt->bindParam(':id_listini', $id_listino, PDO::PARAM_INT);
+            $stmt->bindParam(':codice', $codice, PDO::PARAM_STR);
+            $stmt->execute();
+            $rowC= $stmt->fetch(PDO::FETCH_ASSOC);
+            if($rowC["conto"]>0){
+                //nel casoaggiungere un random
+                if(CAST_TO_INT($_POST["skip_doppi"])>0){
+                    $log .= "Art. $codice saltato perchè già presente.<br>";
+                    $skip = true;
+                }else{
+                    $codice = $codice."-".rand(50000,500000);
+                    $skip = false;
+                }
+            }
+
+            if(!$skip){
+            $sql="INSERT INTO  `my_retegas`.`retegas_articoli` (
+
+                `id_listini` ,
+                `codice` ,
+                `u_misura` ,
+                `misura` ,
+                `descrizione_articoli` ,
+                `qta_scatola` ,
+                `prezzo` ,
+                `ingombro` ,
+                `qta_minima` ,
+                `qta_multiplo` ,
+                `articoli_note` ,
+                `articoli_unico` ,
+                `articoli_opz_1` ,
+                `articoli_opz_2` ,
+                `articoli_opz_3` ,
+                is_disabled,
+                id_ditta,
+                descrizione_ditta
+                )
+                 SELECT
+                :id_listino ,
+                :codice,
+                `u_misura` ,
+                `misura` ,
+                `descrizione_articoli` ,
+                `qta_scatola` ,
+                `prezzo` ,
+                `ingombro` ,
+                `qta_minima` ,
+                `qta_multiplo` ,
+                `articoli_note` ,
+                `articoli_unico` ,
+                `articoli_opz_1` ,
+                `articoli_opz_2` ,
+                `articoli_opz_3`,
+                is_disabled,
+                :id_ditta,
+                :descrizione_ditta
+                FROM retegas_articoli
+                WHERE id_articoli = :id_articolo;";
+                $stmt = $db->prepare($sql);
+                $stmt->bindParam(':id_articolo', $id_articolo, PDO::PARAM_INT);
+                $stmt->bindParam(':id_listino', $id_listino, PDO::PARAM_INT);
+                $stmt->bindParam(':id_ditta', $id_ditte, PDO::PARAM_INT);
+                $stmt->bindParam(':codice', $codice, PDO::PARAM_STR);
+                $stmt->bindParam(':descrizione_ditta', $descrizione_ditte, PDO::PARAM_STR);
+                $stmt->execute();
+                $n++;
+                }
+            //Copiarlo con il codice listino del multiditta, l'id ditta e la descrizione
+
+        }
+
+        $res=array("result"=>"OK", "msg"=>"Aggiunti ".$n." articoli nel listino ".$id_listino.'<br>'.$log  );
+        echo json_encode($res);
+        l_l_n($id_listino,"Aggiunti $n articoli multiditta ");
+        die();
     break;
         //-----------------CLONA ARTICOLO ----------------------------------------------------------
 
@@ -339,7 +567,9 @@ if(!empty($_POST["act"])){
                 `articoli_opz_1` ,
                 `articoli_opz_2` ,
                 `articoli_opz_3` ,
-                is_disabled
+                `is_disabled`,
+                id_ditta,
+                descrizione_ditta
                 )
                  SELECT
                 `id_listini` ,
@@ -356,8 +586,10 @@ if(!empty($_POST["act"])){
                 `articoli_unico` ,
                 `articoli_opz_1` ,
                 `articoli_opz_2` ,
-                `articoli_opz_3`,
-                is_disabled
+                `articoli_opz_3` ,
+                `is_disabled`,
+                id_ditta,
+                descrizione_ditta
                 FROM retegas_articoli
                 WHERE id_articoli = :id_articolo;";
 
@@ -370,6 +602,9 @@ if(!empty($_POST["act"])){
 
                 $res=array("result"=>"OK", "msg"=>"Articolo clonato." );
                 echo json_encode($res);
+
+                //NON SO IL LISTINO
+                //l_l_n($id,"Articolo clonato: $codice");
                 die();
 
         break;
@@ -403,8 +638,12 @@ if(!empty($_POST["act"])){
                     $stmt->bindParam(':id_listini', $id, PDO::PARAM_INT);
                     $stmt->execute();
                     if($stmt->rowCount()>0){
-                        $res=array("result"=>"KO", "msg"=>"Ci sono ordini con questo listino." );
+                        $stmt = $db->prepare("UPDATE retegas_listini SET is_deleted=1 WHERE id_listini=:id_listini LIMIT 1;");
+                        $stmt->bindParam(':id_listini', $id, PDO::PARAM_INT);
+                        $stmt->execute();
+                        $res=array("result"=>"OK", "msg"=>"Listino nascosto." );
                         echo json_encode($res);
+                        l_l_n($id,"Listino nascosto;");
                         die();
                     }else{
                         $stmt = $db->prepare("DELETE FROM retegas_listini WHERE id_listini=:id_listini LIMIT 1;");
@@ -412,6 +651,7 @@ if(!empty($_POST["act"])){
                         $stmt->execute();
                         $res=array("result"=>"OK", "msg"=>"Listino eliminato." );
                         echo json_encode($res);
+                        l_l_n($id,"Listino eliminato;");
                         die();
                     }
 
@@ -449,6 +689,7 @@ if(!empty($_POST["act"])){
                 $stmt->execute();
                 $res=array("result"=>"OK", "msg"=>"Articoli cancellati." );
                 echo json_encode($res);
+                l_l_n($id,"Tutti gli articoli eliminati;");
                 die();
 
             }
@@ -460,6 +701,89 @@ if(!empty($_POST["act"])){
         }
 
         break;
+
+        case "varia_percentuale":
+
+            $id = CAST_TO_INT($_POST["id_listino"]);
+            if(!posso_gestire_listino($id)){
+               $res=array("result"=>"KO", "msg"=>"Listino non tuo." );
+                echo json_encode($res);
+                die();
+            }
+
+            $valore_percentuale=CAST_TO_FLOAT($_POST["valore_percentuale"]);
+
+            if($valore_percentuale<>0){
+                $valore_percentuale = (100+$valore_percentuale)/100;
+            }else{
+                $res=array("result"=>"KO", "msg"=>"La percentuale deve essere inferiore o superiore a zero: ");
+                echo json_encode($res);
+                die();
+            }
+
+            //passo gli id
+            $articoli=CAST_TO_ARRAY($_POST["selectedIDs"]);
+            foreach($articoli as $id_articolo){
+                $stmt = $db->prepare("UPDATE retegas_articoli SET
+                                                            prezzo = prezzo*:variazione
+                                                            WHERE id_articoli = :id_articoli LIMIT 1;");
+                $stmt->bindParam(':id_articoli', $id_articolo, PDO::PARAM_INT);
+                $stmt->bindParam(':variazione', $valore_percentuale, PDO::PARAM_STR);
+                $stmt->execute();
+
+            }
+
+
+
+
+            $res=array("result"=>"OK", "msg"=>"Variazione effettuata: ");
+            echo json_encode($res);
+            l_l_n($id,"Variato prezzo articoli del $valore_percentuale %;");
+            die();
+
+        break;
+
+        case "varia_assoluto":
+
+            $id = CAST_TO_INT($_POST["id_listino"]);
+            if(!posso_gestire_listino($id)){
+               $res=array("result"=>"KO", "msg"=>"Listino non tuo." );
+                echo json_encode($res);
+                die();
+            }
+
+            $valore_assoluto=CAST_TO_FLOAT($_POST["valore_assoluto"]);
+
+            if($valore_assoluto<>0){
+
+            }else{
+                $res=array("result"=>"KO", "msg"=>"Il valore deve essere inferiore o superiore a zero" );
+                echo json_encode($res);
+                die();
+            }
+
+            //passo gli id
+            $articoli=CAST_TO_ARRAY($_POST["selectedIDs"]);
+            foreach($articoli as $id_articolo){
+                $stmt = $db->prepare("UPDATE retegas_articoli SET
+                                                            prezzo =  IF((prezzo+:variazione)>0,prezzo+:variazione,0)
+                                                            WHERE id_articoli = :id_articoli LIMIT 1;");
+                $stmt->bindParam(':id_articoli', $id_articolo, PDO::PARAM_INT);
+                $stmt->bindParam(':variazione', $valore_assoluto, PDO::PARAM_STR);
+                $stmt->execute();
+
+            }
+
+
+
+
+            $res=array("result"=>"OK", "msg"=>"Variazione effettuata");
+            echo json_encode($res);
+            l_l_n($id,"Variato prezzo articoli di $valore_assoluto ;");
+            die();
+
+        break;
+
         case "clona_listino":
         //controllo ID
         $id =CAST_TO_INT($_POST["id"],0);
@@ -476,7 +800,27 @@ if(!empty($_POST["act"])){
         $stmt->bindParam(':id_listini', $id, PDO::PARAM_INT);
         $stmt->execute();
         $rowL = $stmt->fetch(PDO::FETCH_ASSOC);
+        //print_r($rowL); die();
+        /*
+        Array
+        (
+            [id_listini] => 10220
+            [descrizione_listini] => Per Lorena
+            [id_utenti] => 2
+            [id_tipologie] => 3
+            [id_ditte] => 135
+            [data_valido] => 2018-12-31
+            [tipo_listino] => 0
+            [is_privato] => 0
+            [opz_usage] => 0
+            [is_multiditta] => 0
+            [note_listino] => 
+            [data_creazione] => 2018-01-16 23:37:18
+            [is_deleted] => 0
+        )
 
+        */
+        
         if($stmt->rowCount()==1){;
             //controllo se è un listino privato.
             if(($rowL["is_privato"]==1) AND ($rowL["id_utenti"]<>_USER_ID)){
@@ -492,7 +836,11 @@ if(!empty($_POST["act"])){
                                                                     data_valido,
                                                                     tipo_listino,
                                                                     is_privato,
-                                                                    opz_usage
+                                                                    opz_usage,
+                                                                    is_multiditta,
+                                                                    note_listino,
+                                                                    data_creazione,
+                                                                    is_deleted
                                                                     ) VALUES (
                                                                     :descrizione_listini,
                                                                     '"._USER_ID."',
@@ -501,12 +849,22 @@ if(!empty($_POST["act"])){
                                                                     '".$rowL["data_valido"]."',
                                                                     '".$rowL["tipo_listino"]."',
                                                                     '".$rowL["is_privato"]."',
-                                                                    '".$rowL["opz_usage"]."'
+                                                                    '".$rowL["opz_usage"]."',
+                                                                    '".$rowL["is_multiditta"]."',
+                                                                    '".$rowL["note_listino"]."',
+                                                                    NOW(),
+                                                                    0
                                                                     );");
                 $stmt->bindParam(':descrizione_listini', $descrizione_listini, PDO::PARAM_STR);
                 $stmt->execute();
                 //emetto il nuovo ID
                 $newid= $db->lastInsertId();
+                if($newid==0){
+                    $res=array("result"=>"KO", "msg"=>"Errore antipatico" );
+                    echo json_encode($res);
+                    die();    
+                }
+                
                 //Clono gli articoli
                 $query_copia="INSERT INTO
                                 retegas_articoli (codice,
@@ -524,7 +882,9 @@ if(!empty($_POST["act"])){
                                                   articoli_opz_1,
                                                   articoli_opz_2,
                                                   articoli_opz_3,
-                                                  is_disabled)
+                                                  is_disabled,
+                                                  id_ditta,
+                                                  descrizione_ditta)
                                 SELECT
                                         codice,
                                         '$newid',
@@ -541,7 +901,9 @@ if(!empty($_POST["act"])){
                                           articoli_opz_1,
                                           articoli_opz_2,
                                           articoli_opz_3,
-                                          is_disabled
+                                          is_disabled,
+                                          id_ditta,
+                                          descrizione_ditta
                                 FROM
                                         retegas_articoli WHERE id_listini = '".$id."';";
                 $stmt = $db->prepare($query_copia);
@@ -549,6 +911,7 @@ if(!empty($_POST["act"])){
 
                 $res=array("result"=>"OK", "msg"=>"Listino clonato, attendi il reindirizzamento...", "id" => $newid );
                 echo json_encode($res);
+                l_l_n($id,"Listino clonato, nuovo listino: $newid");
                 die();
 
             }
@@ -597,6 +960,7 @@ if(!empty($_POST["name"])){
         }
 
         echo json_encode($res);
+        l_l_n($_POST['pk'],"Descrizione listino: $nuovo");
      break;
      case "data_valido":
         //esiste
@@ -616,7 +980,7 @@ if(!empty($_POST["name"])){
         }else{
             $res=array("result"=>"KO", "msg"=>"Data non riconosciuta." );
         }
-
+        l_l_n($_POST['pk'],"Data validità: $nuovo");
         echo json_encode($res);
      break;
      case "tipo_listino":
@@ -635,7 +999,7 @@ if(!empty($_POST["name"])){
         }else{
             $res=array("result"=>"KO", "msg"=>"Errore" );
         }
-
+        l_l_n($_POST['pk'],"Tipo listino: $tipo_listino");
         echo json_encode($res);
      break;
      case "is_privato":
@@ -654,7 +1018,26 @@ if(!empty($_POST["name"])){
         }else{
             $res=array("result"=>"KO", "msg"=>"Errore" );
         }
+        l_l_n($_POST['pk'],"Listino privato: $is_privato");
+        echo json_encode($res);
+     break;
+     case "is_multiditta":
+        //esiste
+        $is_multiditta = CAST_TO_INT($_POST['value'],0,1);
+        if(!posso_gestire_listino($_POST['pk'])){$res=array("result"=>"KO", "msg"=>"Non posso gestire questo listino" );echo json_encode($res);die();}
 
+
+        $stmt = $db->prepare("UPDATE retegas_listini SET is_multiditta= :is_multiditta, id_ditte=0
+                             WHERE id_listini=:id_listini");
+        $stmt->bindParam(':id_listini', $_POST['pk'], PDO::PARAM_INT);
+        $stmt->bindParam(':is_multiditta', $is_multiditta, PDO::PARAM_INT);
+        $stmt->execute();
+        if($stmt->rowCount()==1){;
+            $res=array("result"=>"OK", "msg"=>"OK..." );
+        }else{
+            $res=array("result"=>"KO", "msg"=>"Errore" );
+        }
+        l_l_n($_POST['pk'],"is multiditta: $is_multiditta");
         echo json_encode($res);
      break;
      case "id_tipologie":
@@ -673,7 +1056,7 @@ if(!empty($_POST["name"])){
         }else{
             $res=array("result"=>"KO", "msg"=>"Errore" );
         }
-
+        l_l_n($_POST['pk'],"Tipologia: $id_tipologia");
         echo json_encode($res);
      break;
      default :

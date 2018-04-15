@@ -8,6 +8,20 @@ $page_title= "Report ordine";
 $id_ordine = CAST_TO_INT($_GET["id"],0);
 $O = new ordine($id_ordine);
 
+//GAS POTENZIALE PARTECIPANTE
+$ok=false;
+$rows = $O->lista_gas_potenziali_partecipanti();
+foreach($rows as $row){
+    if($row["id_gas"]==_USER_ID_GAS){
+        $ok=true;
+    }
+}
+if(!$ok){
+    echo rd4_go_back("Questo ordine non è condiviso con il tuo GAS.");
+    die();
+}
+//GAS POTENZIALE PARTECIPANTE
+
 if (posso_gestire_ordine($id_ordine)){
     $gestore=true;
 }else{
@@ -37,12 +51,53 @@ $rowo = $stmt->fetch(PDO::FETCH_ASSOC);
 
 
 $la_mia_spesa ='<div class="well text-center"><a href="#ajax_rd4/reports/la_mia_spesa.php?id='.$id_ordine.'" class="btn btn-md btn-warning btn-block font-md">LA MIA SPESA</a><br><span class="font-xs">...visualizza quello che hai ordinato di questo ordine.</span></div>';
-$dettaglio_amici ='<div class="well text-center"><a href="#ajax_rd4/rettifiche/start.php?id='.$id_ordine.'" class="btn btn-md btn-warning btn-block font-md disabled">DETTAGLIO AMICI</a><br><span class="font-xs">...visualizza quello che hai ordinato diviso per amico</span></div>';
-$articoli_gas ='<div class="well text-center"><a href="#ajax_rd4/rettifiche/start.php?id='.$id_ordine.'" class="btn btn-md btn-info btn-block font-md disabled">ARTICOLI GAS</a><br><span class="font-xs">...visualizza gli articoli che ha acquistato il tuo GAS</span></div>';
-$dettaglio_utenti_gas ='<div class="well text-center"><a href="#ajax_rd4/reports/utenti_gas.php?id='.$id_ordine.'" class="btn btn-md btn-info btn-block font-md">UTENTI GAS</a><br><span class="font-xs">...visualizza quello che ha acquistato il tuo GAS diviso per utente</span></div>';
-$articoli_raggruppati ='<div class="well text-center"><a href="#ajax_rd4/reports/articoli_raggruppati.php?id='.$id_ordine.'" class="btn btn-md btn-success btn-block font-md">ARTICOLI</a><br><span class="font-xs">...visualizza l\'ordine completo raggruppato per articolo, segnalando le scatole piene e gli avanzi.</span></div>';
-$distribuzione ='<div class="well text-center"><a href="#ajax_rd4/reports/distribuzione.php?id='.$id_ordine.'" class="btn btn-md btn-success btn-block font-md">DISTRIBUZIONE</a><br><span class="font-xs">...per ogni articolo, vedi il dettaglio di chi l\'ha messo in ordine.</span></div>';
+$dettaglio_amici ='<div class="well text-center"><a href="#ajax_rd4/reports/dettaglio_distribuzione.php?id='.$id_ordine.'&a=all" class="btn btn-md btn-warning btn-block font-md">DETTAGLIO AMICI</a><br><span class="font-xs">...visualizza quello che hai ordinato diviso per amico</span></div>';
 
+if($gestore | _USER_GAS_VISIONE_CONDIVISA){
+    $dettaglio_utenti_gas ='<div class="well text-center"><a href="#ajax_rd4/reports/utenti_gas.php?id='.$id_ordine.'" class="btn btn-md btn-info btn-block font-md">UTENTI GAS</a><br><span class="font-xs">...visualizza quello che ha acquistato il tuo GAS diviso per utente</span></div>';
+    $articoli_raggruppati ='<div class="well text-center"><a href="#ajax_rd4/reports/articoli_raggruppati.php?id='.$id_ordine.'" class="btn btn-md btn-success btn-block font-md">ARTICOLI</a><br><span class="font-xs">...visualizza l\'ordine completo raggruppato per articolo, segnalando le scatole piene e gli avanzi.</span></div>';
+    $distribuzione ='<div class="well text-center"><a href="#ajax_rd4/reports/distribuzione.php?id='.$id_ordine.'" class="btn btn-md btn-success btn-block font-md">DISTRIBUZIONE</a><br><span class="font-xs">...per ogni articolo, vedi il dettaglio di chi l\'ha messo in ordine.</span></div>';
+    
+    $articoli_gas ='<div class="well text-center"><a href="#ajax_rd4/reports/articoli_raggruppati_gas.php?id='.$id_ordine.'" class="btn btn-md btn-info btn-block font-md">ARTICOLI GAS</a><br><span class="font-xs">...visualizza gli articoli che ha acquistato il tuo GAS</span></div>';
+    $articoli_raggruppati_semplificata ='<div class="well text-center"><a href="#ajax_rd4/reports/articoli_semplificato.php?id='.$id_ordine.'" class="btn btn-md btn-success btn-block font-md">SEMPLIFICATO</a><br><span class="font-xs">prodotto - quantità ordinata - costo (prezzo*quantità)</span></div>';
+
+    $title_gas = "Cosa ha acquistato il tuo GAS";
+    $title_fornitore = "Per ordinare la merce al fornitore";
+    $title_distribuzione ="Per distribuire la merce arrivata";
+    $title_merce = "Per aiutare nella distribuzione";
+
+    if($gestore){
+        $title_multigas="Gestione ordine multiGas";
+        $title_valore_multigas="Valori articoli multiGas";
+        $title_multiditta="Gestione ordine multiDitta";
+        $articoli_multigas ='<div class="well text-center"><a href="#ajax_rd4/reports/articoli_raggruppati_multigas.php?id='.$id_ordine.'" class="btn btn-md btn-danger btn-block font-md">ARTICOLI MULTIGAS</a><br><span class="font-xs">...visualizza gli articoli che hanno acquistato tutti i gas</span></div>';
+        $articoli_multiditta ='<div class="well text-center"><a href="#ajax_rd4/reports/articoli_raggruppati_multiditta.php?id='.$id_ordine.'" class="btn btn-md btn-danger btn-block font-md">ARTICOLI MULTIDITTA</a><br><span class="font-xs">...visualizza gli articoli raggruppati per ditta</span></div>';
+        $valore_multigas='<div class="well text-center"><a href="#ajax_rd4/reports/valori_raggruppati_multigas.php?id='.$id_ordine.'" class="btn btn-md btn-danger btn-block font-md">VALORE MULTIGAS</a><br><span class="font-xs">...visualizza il valore degli articoli raggruppati per tutti i gas</span></div>';
+
+    }else{
+        $title_multiditta="";
+        $title_multigas="";
+        $articoli_multigas ='';
+        $articoli_multiditta ='';
+        $title_valore_multigas='';
+    }
+
+}else{
+    $dettaglio_utenti_gas = '';
+    $articoli_raggruppati = '';
+    $distribuzione =        '';
+    $articoli_gas =         '';
+    $articoli_raggruppati_semplificata ='';
+    $articoli_multigas ='';
+    $valore_multigas='';
+
+    $title_gas='';
+    $title_fornitore ='';
+    $title_distribuzione ='';
+    $title_multigas='';
+    $title_merce='';
+    $title_valore_multigas='';
+}
 
 ?>
 
@@ -59,7 +114,7 @@ $distribuzione ='<div class="well text-center"><a href="#ajax_rd4/reports/distri
     <div class="col-md-4">
     </div>
 </div>
-<h1 class="font-xl">Cosa ha acquistato il tuo GAS</h1>
+<h1 class="font-xl"><?php echo $title_gas; ?></h1>
 <div class="row margin-top-10">
     <div class="col-md-4">
         <?php echo $articoli_gas; ?>
@@ -70,20 +125,42 @@ $distribuzione ='<div class="well text-center"><a href="#ajax_rd4/reports/distri
     <div class="col-md-4">
     </div>
 </div>
-<h1 class="font-xl">Per ordinare la merce al fornitore.</h1>
+<h1 class="font-xl"><?php echo $title_fornitore; ?></h1>
 <div class="row margin-top-10">
     <div class="col-md-4">
         <?php echo $articoli_raggruppati; ?>
+    </div>
+    <div class="col-md-4">
+        <?php echo $articoli_raggruppati_semplificata; ?>
+    </div>
+    <div class="col-md-4">
+    </div>
+</div>
+<h1 class="font-xl"><?php echo $title_merce; ?></h1>
+<div class="row margin-top-10">
+    <div class="col-md-4">
+        <?php echo $distribuzione; ?>
     </div>
     <div class="col-md-4">
     </div>
     <div class="col-md-4">
     </div>
 </div>
-<h1 class="font-xl">Per distribuire la merce</h1>
+<h1 class="font-xl"><?php echo $title_multigas; ?></h1>
 <div class="row margin-top-10">
     <div class="col-md-4">
-        <?php echo $distribuzione; ?>
+        <?php echo $articoli_multigas; ?>
+    </div>
+    <div class="col-md-4">
+        <?php echo $valore_multigas; ?>
+    </div>
+    <div class="col-md-4">
+    </div>
+</div>
+<h1 class="font-xl"><?php echo $title_multiditta; ?></h1>
+<div class="row margin-top-10">
+    <div class="col-md-4">
+        <?php echo $articoli_multiditta; ?>
     </div>
     <div class="col-md-4">
     </div>

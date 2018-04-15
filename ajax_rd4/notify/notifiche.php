@@ -40,11 +40,33 @@
   }
 
 
+  //NUOVI USERS
+    if(_USER_PERMISSIONS & perm::puo_gestire_utenti){
+        $stmt = $db->prepare("select count(*) as conto from maaking_users where isactive=0 AND id_gas='"._USER_ID_GAS."' ");
+        $stmt->execute();
+        $row = $stmt->fetch();
+        if($row["conto"]>0){
+            if($row["conto"]==1){
+                $uten = 'C\'è <b>un</b> nuovo utente da attivare;';
+            }else{
+                $uten = 'Ci sono <b>'.$row["conto"].'</b> nuovi utenti da attivare;';
+            }
+            $alert_users='<p class="alert alert-warning margin-top-10"><a href="#ajax_rd4/gas/gas_attivazioni.php" class="pull-left margin-top-5" style="margin-right:10px;" rel="tooltip" data-content="Vai alla tabella movimenti"><i class="fa fa-2x fa-user-plus"></i></a><span class="note">COME GESTORE UTENTI</span><br>  '.$uten.'</p>';
+            $notifiche[] = render_notifica(0,"NUOVI_UTENTI",$uten,"", APP_URL."/#ajax_rd4/gas/gas_attivazioni.php");
+
+        }else{
+            $alert_users='';
+
+        }
+
+    }
+
 
 
   //-------------------------ORDINO
   krsort($notifiche);
 ?>
 <ul class="notification-body">
+
      <?php foreach($notifiche as $notifica){echo $notifica;} ?>
 </ul>

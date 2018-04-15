@@ -39,10 +39,60 @@ if($gas_list<>""){
     $gas_filter = false;
 }
 
+$sn = CAST_TO_INT($_POST["sn"],0);
+if ($sn ==0){
+    $sn  = CAST_TO_INT($_GET["sn"],0);
+}
+if($sn>0){
+    $show_note = true;
+}else{
+    $show_note = false;
+}
+
+$sr = CAST_TO_INT($_POST["sr"],0);
+if ($sr ==0){
+    $sr  = CAST_TO_INT($_GET["sr"],0);
+}
+if($sr>0){
+    $show_rett = true;
+}else{
+    $show_rett = false;
+}
+$id_gas=_USER_ID_GAS;
+
+$stmt = $db->prepare("SELECT valore_int FROM retegas_options WHERE id_gas=:id_gas AND chiave='_GAS_REPORT_SHOW_ID' LIMIT 1;");
+$stmt->bindParam(':id_gas', $id_gas, PDO::PARAM_INT);
+$stmt->execute();
+$row = $stmt->fetch();
+if($row["valore_int"]>0){
+    $show_id=true;
+}else{
+    $show_id=false;
+}
+
+$stmt = $db->prepare("SELECT valore_int FROM retegas_options WHERE id_gas=:id_gas AND chiave='_GAS_REPORT_SHOW_TEL' LIMIT 1;");
+$stmt->bindParam(':id_gas', $id_gas, PDO::PARAM_INT);
+$stmt->execute();
+$row = $stmt->fetch();
+if($row["valore_int"]>0){
+    $show_tel=true;
+}else{
+    $show_tel=false;
+}
 
 
+$stmt = $db->prepare("SELECT valore_int FROM retegas_options WHERE id_gas=:id_gas AND chiave='_GAS_REPORT_SHOW_TESSERA' LIMIT 1;");
+$stmt->bindParam(':id_gas', $id_gas, PDO::PARAM_INT);
+$stmt->execute();
+$row = $stmt->fetch();
+if($row["valore_int"]>0){
+    $show_tessera=true;
+}else{
+    $show_tessera=false;
+}
 
-$html= '<table id="table_exp" class="rd4" style="margin-left: auto; margin-right: auto">
+$html= '<h3>Ordine #'.$O->id_ordini.' - '.$O->descrizione_ordini.'</h3>';
+$html.= '<table id="table_exp" class="rd4" style="margin-left: auto; margin-right: auto">
             <thead >
                 <tr class="intestazione" >
                     <th style="width:15%;">Codice</th>
@@ -55,9 +105,18 @@ $html= '<table id="table_exp" class="rd4" style="margin-left: auto; margin-right
             <tbody>';
 //-----------------------------------DATI
 
+if($show_rett){
+    $filtro_rett='';
+}else{
+    $filtro_rett=" AND LEFT(D.art_codice , 2)<>'@@' AND LEFT(D.art_codice , 2)<>'##' " ;
+}
+
 $sql = "SELECT D.art_codice, D.art_desc, D.art_um, SUM(D.qta_arr) as totale_articolo
             FROM retegas_dettaglio_ordini D
-            WHERE D.id_ordine=:id_ordine GROUP BY D.art_codice, D.art_desc
+            WHERE D.id_ordine=:id_ordine 
+            ".$filtro_rett."
+            GROUP BY D.art_codice, D.art_desc
+            
             HAVING SUM(D.qta_arr)>0";
 $stmt = $db->prepare($sql);
 $stmt->bindParam(':id_ordine', $O->id_ordini, PDO::PARAM_INT);
@@ -67,12 +126,7 @@ foreach($rows AS $row){
 
 
 
-            $r++;
-            if(is_integer($riga/2)){
-                $row_class="odd";
-            }else{
-                $row_class="even";
-            }
+
 
 
             if($row["art_codice"]<>$articolo_attuale){
@@ -131,7 +185,7 @@ foreach($rows AS $row){
             $Tavanzi += round($avanzo);
             $gas_attuale = "";
             //---------------------------------------------------DETTAGLIO
-            $sql = "SELECT D.art_codice, D.art_desc, D.art_um, D.qta_arr as totale_articolo, U.fullname, G.descrizione_gas, G.id_gas
+            $sql = "SELECT D.art_codice, D.art_desc, D.art_um, D.qta_arr as totale_articolo, U.fullname, U.tessera, U.tel, G.descrizione_gas, G.id_gas, D.id_articoli, U.userid
                     FROM retegas_dettaglio_ordini D
                     inner join maaking_users U on U.userid= D.id_utenti
                     inner join retegas_gas G on G.id_gas=U.id_gas
@@ -151,6 +205,12 @@ foreach($rows AS $row){
                 $r++;
                 $scatole=0;
                 $avanzo=0;
+
+                if(is_integer($r/2)){
+                    $row_class="odd";
+                }else{
+                    $row_class="even";
+                }
 
                 $i=$rowD["totale_articolo"];
                 if($scatola>0){
@@ -215,12 +275,51 @@ foreach($rows AS $row){
                     $articoli="articoli";
                 }
 
+                //NOTA ARTICOLO
+                if($show_note){
+                    $sql = "SELECT * FROM retegas_options
+                            WHERE
+                            id_articolo=:id_articolo AND
+                            id_user=:id_user AND
+                            chiave='_NOTE_DETTAGLIO' AND
+                            id_ordine=:id_ordine";
+                    $stmtN = $db->prepare($sql);
+                    $stmtN->bindParam(':id_articolo',$rowD["id_articoli"] , PDO::PARAM_INT);
+                    $stmtN->bindParam(':id_ordine',$O->id_ordini , PDO::PARAM_INT);
+                    $stmtN->bindParam(':id_user',$rowD["userid"] , PDO::PARAM_INT);
+                    $stmtN->execute();
+                    $rowN = $stmtN->fetch();
+                    if(trim(CAST_TO_STRING($rowN["valore_text"]))<>""){
+                        $N_A ='<br><span class="note">'.$rowN["valore_text"].'</span>';
+                    }else{
+                        $N_A ='';
+                    }
+                }
+                //NOTA ARTICOLO
 
-                $html_row ='<div style="border-top:'.$pixels.'px solid #ccc;">
+                if($show_tel){
+                    $show_telefono = '<span class="note">('.$rowD["tel"].')</span>';
+                  }else{
+                    $show_telefono = '';
+                  }
+                  if($show_tessera){
+                    $show_tessera = '<span class="note"> ['.$rowD["tessera"].'] </span>';
+                  }else{
+                    $show_tessera = '';
+                  }
+                  if($show_id){
+                    $show_id = '<span class="note"> #'.$rowD["userid"].' </span>';
+                  }else{
+                    $show_id = '';
+                  }
+
+
+
+                $html_row ='<div style="border-top:'.$pixels.'px solid #ccc;" class="'.$row_class.'">
                             <span style="width:220px; display:inline-block; font-size:12px;">'.$descrizione_gas.'</span><span style="width:200px;display:inline-block;">
-                                <strong style="font-size:12px;">'.$rowD["fullname"].'</strong>
+                                <strong style="font-size:12px;">'.$show_id.' '.$show_tessera.' '.$rowD["fullname"].' '.$show_telefono.'</strong>
                             </span>
-                            <span style="font-size:12px;">'.number_format($rowD["totale_articolo"],2, ',', '').' '.$articoli.'.</span> '.$gruppo_scatole.'</div>';
+                            <span style="font-size:12px;">'.number_format($rowD["totale_articolo"],2, ',', '').' '.$articoli.'.</span> '.$gruppo_scatole.$N_A.'</div>';
                 $gas_attuale = $rowD["descrizione_gas"];
 
                 if($gas_filter){
@@ -255,9 +354,9 @@ $html.='    </tbody>
             <tfoot>
                 <tr class="totale">
                     <th colspan=2 style="text-align:right">Totale</th>
-                    <th style="text-align:right"><strong>'.number_format($totale,2, ',', '').'</strong></th>
-                    <th style="text-align:right"><strong>'.number_format($Tscatole,2, ',', '').'</strong></th>
-                    <th style="text-align:right"><strong>'.number_format($Tavanzi,2, ',', '').'</strong></th>
+                    <th style="text-align:right"><strong>'._NF($totale).'</strong></th>
+                    <th style="text-align:right"><strong>'._NF($Tscatole).'</strong></th>
+                    <th style="text-align:right"><strong>'._NF($Tavanzi).'</strong></th>
                 </tr>
             </tfoot>
          </table>';
@@ -309,10 +408,22 @@ $buttons[]='<button  data-id_ordine="'.$O->id_ordini.'" class="btn btn-default b
 <div class="well well-sm hidden" id="opzioni_report">
 <div class="row">
         <div class="col-md-6">
-            <div class="padding-10">
-                <label>Seleziona quali gas vuoi visualizzare, lascia vuoto per visualizzarli tutti; Puoi selezionarne più di uno;</label>
-                <div id="gas_select" data-init-text="Tutti"></div>
-            </div>
+            
+                <section>
+                    <div class="padding-10">
+                        <label>Seleziona quali gas vuoi visualizzare, lascia vuoto per visualizzarli tutti; Puoi selezionarne più di uno;</label>
+                        <div id="gas_select" data-init-text="Tutti"></div>
+                    </div>
+                    <div class="padding-10 checkbox">
+                        <label class="checkbox">
+                        <input id="show_note" class="checkbox-inline" type="checkbox" <?php echo ($show_note ? ' CHECKED="CHECKED" ' : 0) ?>> Visualizza le note di ogni utente.</label>
+                    </div>
+                    <div class="padding-10 checkbox">
+                        <label class="checkbox">
+                        <input id="show_rett" class="checkbox-inline" type="checkbox" <?php echo ($show_rett ? ' CHECKED="CHECKED" ' : 0) ?>> Visualizza anche le rettifiche ## e @@.</label>
+                    </div>
+                </section>
+            
         </div>
 </div>
 <button class="btn btn-success pull-right" id="aggiorna_report"  data-id_ordine="<?php echo $O->id_ordini; ?>">Aggiorna</button>
@@ -366,15 +477,24 @@ $buttons[]='<button  data-id_ordine="'.$O->id_ordini.'" class="btn btn-default b
         $('#aggiorna_report').click(function(){
             var $this = $(this);
             var id = $this.data('id_ordine');
+            if($('#show_note').is(':checked')){
+                 show_note=1;
+            }else{
+                 show_note=0;
+            }
+            if($('#show_rett').is(':checked')){
+                 show_rett=1;
+            }else{
+                 show_rett=0;
+            }
+
             gas_list ='';
             for (index = 0; index < gas_selection.length; ++index) {
                 gas_list = gas_list + gas_selection[index].id+",";
             }
 
             console.log(gas_list);
-            location.replace('http://retegas.altervista.org/gas4/#ajax_rd4/reports/distribuzione.php?id='+id+'&gs='+gas_list);
-            //window.location.assign('http://retegas.altervista.org/gas4/#ajax_rd4/reports/distribuzione.php?id='+id+'&gas_select='+gas_selection);
-            //open('GET', 'http://retegas.altervista.org/gas4/#ajax_rd4/reports/distribuzione.php', {id:id, dummy:<?php echo rand(1000,9999); ?>, gas_selection: gas_selection}, '_self');
+            location.replace('<?php echo APP_URL; ?>/#ajax_rd4/reports/distribuzione.php?id='+id+'&gs='+gas_list+'&sn='+show_note+'&sr='+show_rett);
             return false;
         });
         gas_selection = $(gs).select2('data');

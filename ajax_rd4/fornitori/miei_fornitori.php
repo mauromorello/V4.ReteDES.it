@@ -55,9 +55,6 @@ $wg_dett_forn->header = array(
     "icon" => 'fa fa-pencil'
 );
 
-if(_USER_PERMISSIONS & perm::puo_creare_ditte){
-    $button[] = '<form style="margin-right:10px;"><button  class=" aggiungi_ditta btn btn-default btn-success navbar-btn"><i class="fa fa-plus"></i> Nuova ditta</button></form>';
-}
 
 ?>
 

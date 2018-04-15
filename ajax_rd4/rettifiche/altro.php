@@ -11,7 +11,7 @@ if ($id_ordine==0){
 
 if($id_ordine==0){echo rd4_go_back("KO!");die;}
 
-if (!posso_gestire_ordine($id_ordine)){
+if (!posso_gestire_ordine_come_gas($id_ordine)){
     echo rd4_go_back("Non ho i permessi necessari");die;
 }
 $O=new ordine($id_ordine);
@@ -33,11 +33,22 @@ $stmt = $db->prepare("SELECT * from retegas_ordini WHERE id_ordini=:id_ordine;")
 
 $page_title = "Aggiunte e detrazioni";
 
+$costo_gas_referenza=round($O->costo_gas_referenza_v2(_USER_ID_GAS),2);
+if($costo_gas_referenza==0){
+    $costo_gas_referenza = '';
+}else{
+    if(VA_ORDINE_GAS_SOLO_EXTRA_GAS($o->id_ordini,_USER_ID_GAS)>0){
+        $costo_gas_referenza = '';
+    }else{
+        $costo_gas_referenza = '<div class="alert alert-danger">Questo ordine ha un <strong>COSTO GAS</strong> previsto di <strong>'._NF($costo_gas_referenza).' Eu.</strong>, ma non sono stati trovate voci corrispondenti nell\'ordine. In questa pagina puoi correggere l\'anomalia. Se l\'ordine è condiviso tra più GAS ricordati di selezionare la voce "Solo utenti del mio GAS".</div>';
 
+    }
+}
 ?>
 <?php echo $O->navbar_ordine(); ?>
 <?php echo $msg_conv; ?>
-<div class="panel panel-blueLight padding-10">
+<?php echo $costo_gas_referenza; ?>
+<div class="panel panel-blueLight padding-10 margin-top-10">
     <p class="font-xl">Aggiungi o sottrai degli importi all'ordine:</p>
     <div class="row">
 
@@ -69,9 +80,9 @@ $page_title = "Aggiunte e detrazioni";
                                 <label class="radio">
                                     <input type="radio" name="tipo" value="2" >
                                     <i></i>Ripartisci l'importo equamente tra gli utenti.</label>
-                                <!--<label class="radio">
-                                    <input type="radio" name="tipo" value="3" disabled="disabled" >
-                                    <i></i>Dividi in proporzione al campo "note brevi" (vedi help)</label>-->
+                                <label class="radio">
+                                    <input type="radio" name="tipo" value="3" >
+                                    <i></i>Dividi in proporzione al campo "note brevi" detto anche "ingombro"</label>
                             </div>
                         </div>
                         <div class="note">
@@ -168,6 +179,21 @@ $page_title = "Aggiunte e detrazioni";
         <?php echo help_render_js('rettifiche_aggiunte');?>
         //------------END HELP WIDGET
 
+        var update_boxino = function(){
+            $.ajax({
+                  type: "POST",
+                  url: "ajax_rd4/rettifiche/_act.php",
+                  dataType: 'json',
+                  data: {act: "schedina riepilogo", id_ordine : <?php echo $id_ordine ?>},
+                  context: document.body
+                }).done(function(data) {
+                    if(data.result=="OK"){
+                            $('.boxino_riepilogo').html(data.msg);
+                    }
+                });
+        }
+
+
         var $totaleForm = $("#rettifica_aggiunta").validate({
 
             rules : {
@@ -215,17 +241,41 @@ $page_title = "Aggiunte e detrazioni";
             }
         });
 
-        $.ajax({
+
+       $(document).off('click','#elimina_rettifiche_gas');
+       $(document).on('click','#elimina_rettifiche_gas',function(e){
+           $.ajax({
               type: "POST",
               url: "ajax_rd4/rettifiche/_act.php",
               dataType: 'json',
-              data: {act: "schedina riepilogo", id_ordine : <?php echo $id_ordine ?>},
+              data: {act: "art_delete_rett_gas", id_ordine : <?php echo $id_ordine ?>},
               context: document.body
             }).done(function(data) {
                 if(data.result=="OK"){
-                        $('.boxino_riepilogo').html(data.msg);
+                        ok(data.msg);
+                        update_boxino();
                 }
             });
+       })
+
+       $(document).off('click','#elimina_rettifiche_globali');
+       $(document).on('click','#elimina_rettifiche_globali',function(e){
+           $.ajax({
+              type: "POST",
+              url: "ajax_rd4/rettifiche/_act.php",
+              dataType: 'json',
+              data: {act: "art_delete_rett_globali", id_ordine : <?php echo $id_ordine ?>},
+              context: document.body
+            }).done(function(data) {
+                if(data.result=="OK"){
+                        ok(data.msg);
+                        update_boxino();
+                }
+            });
+       })
+
+       update_boxino();
+
     } // end pagefunction
 
 loadScript("js/plugin/jquery-form/jquery-form.min.js", pagefunction);

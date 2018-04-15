@@ -1,79 +1,53 @@
 <?php
 require_once("inc/init.php");
+require_once("../../lib_rd4/class.rd4.gas.php");
+
 $ui = new SmartUI;
 $converter = new Encryption;
 
 $page_title = "Utenti del mio GAS";
+$page_id="gas_utenti";
 
-$stmt = $db->prepare("SELECT * FROM  maaking_users WHERE id_gas = '"._USER_ID_GAS."'");
+$G = new gas(_USER_ID_GAS);
+
+if(!_USER_GAS_VISIONE_DATI_UTENTI){
+    if(!((_USER_PERMISSIONS & perm::puo_gestire_utenti) OR (_USER_PERMISSIONS & perm::puo_creare_gas))){
+        echo rd4_go_back("Il tuo GAS non permette la visione dei dati utenti");die;
+    }
+}
+
+$stmt = $db->prepare("SELECT * FROM  maaking_users WHERE id_gas = '"._USER_ID_GAS."' AND isactive=1");
 $stmt->execute();
 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 foreach ($rows as $row) {
 
     $useridEnc = $converter->encode($row["userid"]);
 
-    $status ="";
-    $status_n ="Attivo";
-    $activate ='';
-    $suspend ='<li>
-                    <a href="javascript:sospendi(\''.$useridEnc.'\',\''.$row["fullname"].'\');"><i class="fa fa-warning"></i>&nbsp;Sospendi</a>
-                </li>';
-    $delete ='';
-
-    if($row["isactive"]==2){
-        $status = " warning ";
-        $status_n = "Sospeso";
-        $activate ='<li>
-                    <a href="javascript:attiva(\''.$useridEnc.'\',\''.$row["fullname"].'\');"><i class="fa fa-check"></i>&nbsp; Attiva</a>
-                </li>';
-        $suspend ='';
-        $delete = '<li>
-                    <a href="javascript:elimina(\''.$useridEnc.'\',\''.$row["fullname"].'\');"><i class="fa fa-trash-o"></i>&nbsp;Elimina</a>
-                  </li>';
-    }
-    if($row["isactive"]==3){
-        $status = " danger ";
-        $status_n = "Eliminato";
-        $suspend ='';
-        $delete='';
-        $activate ='<li>
-                    <a href="javascript:attiva(\''.$useridEnc.'\',\''.$row["fullname"].'\');"><i class="fa fa-check"></i>&nbsp; Attiva</a>
-                </li>';
-    }
-    if($row["isactive"]==0){
-        $status = " success ";
-        $status_n = "in Attesa";
-        $suspend ='';
-        $delete='<li>
-                    <a href="javascript:elimina(\''.$useridEnc.'\',\''.$row["fullname"].'\');"><i class="fa fa-trash-o"></i>&nbsp; Elimina</a>
-                  </li>';
-        $activate ='<li>
-                     <a href="javascript:attiva(\''.$useridEnc.'\',\''.$row["fullname"].'\');"><i class="fa fa-check"></i>&nbsp; Attiva</a>
-                    </li>';
-    }
+    //ha la cassa;
 
 
-    if(_USER_PERMISSIONS & perm::puo_gestire_utenti){
-        $p = '  '.$activate.'
-                '.$suspend.'
-                '.$delete.'
+    $p1 = '<img class="" src="'.src_user($row["userid"],64).'" style="width:32px;height:32px;">';
+    $p2 = '<a class="btn btn-link" data-id="'.$row["userid"].'" href="ajax_rd4/gas/inc/messaggio.php?id='.$row["userid"].'" data-toggle="modal" data-target="#remoteModal"><i class="fa fa-envelope"></i></a>';
 
-             ';
-        $p1='<div class="btn-group">
-                                <button class="btn btn-link dropdown-toggle" data-toggle="dropdown">
-                                    <img class="" src="'.src_user($row["userid"],64).'" style="width:32px;height:32px;">
-                                </button>
-                                <ul class="dropdown-menu">
-                                    <li><a data-id="'.$row["userid"].'" href="ajax_rd4/gas/inc/messaggio.php?id='.$row["userid"].'" data-toggle="modal" data-target="#remoteModal"><i class="fa fa-envelope"></i>&nbsp; Messaggia</a></li>
-                                    <li class="divider"></li>
-                                    '.$p.'
-                                </ul>
-        </div>';
-        $p2='';
+
+    $indirizzo=$row["country"].'<br><span class="note">'.$row["city"].'</span>';
+
+    if($G->custom_1_privato==0){
+        $custom_1='<td>'.$row["custom_1"].'</td>';
     }else{
-        $p2 = '<a class="btn btn-link" data-id="'.$row["userid"].'" href="ajax_rd4/gas/inc/messaggio.php?id='.$row["userid"].'" data-toggle="modal" data-target="#remoteModal"><i class="fa fa-envelope"></i></a>';
-        $p1 = '<img class="" src="'.src_user($row["userid"],64).'" style="width:32px;height:32px;">';
+        $custom_1='';
     }
+    if($G->custom_2_privato==0){
+        $custom_2='<td>'.$row["custom_2"].'</td>';
+    }else{
+        $custom_2='';
+    }
+    if($G->custom_3_privato==0){
+        $custom_3='<td>'.$row["custom_3"].'</td>';
+    }else{
+        $custom_3='';
+    }
+
     if((_USER_PERMISSIONS & perm::puo_gestire_utenti) OR $row["isactive"]==1){
 
         $z .= '<tr rel="'.$useridEnc.'" class="'.$status.'">
@@ -81,13 +55,33 @@ foreach ($rows as $row) {
                 <td>'.$p1.'</td>
                 <td><a href="#ajax_rd4/user/scheda.php?id='.$useridEnc.'">'.$row["fullname"].'</a></td>
                 <td>'.$p2.'  '.$row["email"].'</td>
+                <td>'.$indirizzo.'</td>
                 <td>'.$row["tel"].'</td>
                 <td>'.$status_n.'</td>
+                '.$custom_1.'
+                '.$custom_2.'
+                '.$custom_3.'
 
               </tr>';
     }
 }
 
+
+if($G->custom_1_privato==0){
+        $custom_1_header='<th>'.$G->custom_1_nome.'</th>';
+    }else{
+        $custom_1_header='';
+    }
+if($G->custom_2_privato==0){
+        $custom_2_header='<th>'.$G->custom_2_nome.'</th>';
+    }else{
+        $custom_2_header='';
+    }
+if($G->custom_3_privato==0){
+        $custom_3_header='<th>'.$G->custom_3_nome.'</th>';
+    }else{
+        $custom_3_header='';
+    }
 
 $a='    <div class="" style="max-height:600px;overflow-y:auto;">
         <table id="dt_utenti_gas" class="table table-striped margin-top-10 has-tickbox smart-form">
@@ -97,116 +91,34 @@ $a='    <div class="" style="max-height:600px;overflow-y:auto;">
                                         <th></th>
                                         <th>Nome</th>
                                         <th><i class="fa fa-envelope"></i>&nbsp;Mail</th>
+                                        <th>Indirizzo</th>
                                         <th>Tel</th>
                                         <th>Status</th>
-
+                                        '.$custom_1_header.'
+                                        '.$custom_2_header.'
+                                        '.$custom_3_header.'
                                     </tr>
                                 </thead>
                                 <tbody>
                                     '.$z.'
                                 </tbody>
                             </table>
-        </div>
-        <div class="well margin-top-5">
-            <label class="pull-right ">
-            <input class="selectall" type="checkbox"> Seleziona / deseleziona tutti
-            </label>
-            <p><button class="btn btn-default" id="manda_messaggio_a_utenti"><i class="fa fa-envelope"></i>   manda agli utenti selezionati un messaggio.</button></p>
-
-            <label>Messaggio:</label>
-            <textarea  id="messaggio_a_utenti" style="width:100%;"></textarea>
-            <p></p>
-            <div class="alert alert-info"><strong>ATTENZIONE:</strong> Non abusare di questa funzione. A nessuno piace ricevere mail inutili.</div>
-        </div>
-
-        ';
-if(_USER_PERMISSIONS & perm::puo_gestire_utenti){
-
-    $stmt = $db->prepare("SELECT count(*) FROM  maaking_users WHERE id_gas='"._USER_ID_GAS."'");
-    $stmt->execute();
-    $row = $stmt->fetch(PDO::FETCH_NUM);
-    $user_Tutti = $row[0];
-
-    $stmt = $db->prepare("SELECT count(*) FROM  maaking_users WHERE id_gas='"._USER_ID_GAS."' and isactive=1");
-    $stmt->execute();
-    $row = $stmt->fetch(PDO::FETCH_NUM);
-    $user_Attivi = $row[0];
-
-    $stmt = $db->prepare("SELECT count(*) FROM  maaking_users WHERE id_gas='"._USER_ID_GAS."' and isactive=2");
-    $stmt->execute();
-    $row = $stmt->fetch(PDO::FETCH_NUM);
-    $user_Sospesi = $row[0];
-
-    $stmt = $db->prepare("SELECT count(*) FROM  maaking_users WHERE id_gas='"._USER_ID_GAS."' and isactive=3");
-    $stmt->execute();
-    $row = $stmt->fetch(PDO::FETCH_NUM);
-    $user_Eliminati = $row[0];
-
-    $stmt = $db->prepare("SELECT count(*) FROM  maaking_users WHERE id_gas='"._USER_ID_GAS."' and isactive=0");
-    $stmt->execute();
-    $row = $stmt->fetch(PDO::FETCH_NUM);
-    $user_Attesa = $row[0];
-    if ($user_Attesa>0){
-        $btn_Attesa = '<a class="show_Attesa btn btn-success">in Attesa (<b>'.$user_Attesa.'</b>)</a>';
-    }else{
-        $btn_Attesa = "";
-    }
-
-$mp ='
-        <div class="row ">
-            <div class=" col-xs-4">
-                <h4>Filtra la tabella:</h4>
-                <div class="btn-group-vertical btn-block">
-                    <a class="show_Tutti btn btn-default">Tutti (<b>'.$user_Tutti.'</b>)</a>
-                    <a class="show_Sospesi btn btn-default">Sospesi (<b>'.$user_Sospesi.'</b>)</a>
-                    <a class="show_Attivi btn btn-default">Attivi (<b>'.$user_Attivi.'</b>)</a>
-                    <a class="show_Eliminati btn btn-default">Eliminati (<b>'.$user_Eliminati.'</b>)</a>
-                    '.$btn_Attesa.'
-                </div>
-            </div>
-
-            <div class="col-xs-4">
-                <h4>Composizione GAS</h4>
-                <br>
-                <div style="margin-left: auto;margin-right: auto; width: 70%;">
-                    <span  class="sparkline"  data-sparkline-type="pie" data-sparkline-offset="90" data-sparkline-piesize="128px">'.$user_Attivi.','.$user_Sospesi.','.$user_Eliminati.','.$user_Attesa.'</span>
-                </div>
-            </div>
-            <div class="col-xs-4">
-                <h4>Info <small>(Clicca su una riga...)</small></h4>
-                <div id="schedina_utente"></div>
-            </div>
-        </div>
-      ';
-
-}
-$options = array(   "editbutton" => false,
-                    "fullscreenbutton"=>true,
-                    "deletebutton"=>false,
-                    "colorbutton"=>true);
-$wg_utentigas = $ui->create_widget($options);
-$wg_utentigas->id = "wg_gas_utenti";
-$wg_utentigas->body = array("content" => $mp.'<hr>'.$a,"class" => "");
-$wg_utentigas->header = array(
-    "title" => '<h2>Utenti</h2>',
-    "icon" => 'fa fa-group'
-    );
+        </div> ';
 
 
 ?>
-<div class="inbox-nav-bar no-content-padding">
-    <h1 class="page-title txt-color-blueDark"><i class="fa fa-fw fa-home"></i> <?php echo _USER_GAS_NOME; ?>  &nbsp;</h1>
-</div>
+<?php echo $G->render_toolbar("UTENTI del "._USER_GAS_NOME); ?>
 
 <section id="widget-grid" class="margin-top-10">
     <div class="row">
         <!-- PRIMA COLONNA-->
         <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-            <?php echo help_render_html('gas_utenti',$page_title); ?>
-            <?php echo $wg_utentigas->print_html(); ?>
+            <?php echo help_render_html($page_id,$page_title); ?>
         </article>
     </div>
 </section>
+
+<?php echo '<hr>'.$a; ?>
 <!-- Dynamic Modal -->
 <div class="modal fade" id="remoteModal" tabindex="-1" role="dialog" aria-labelledby="remoteModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -230,77 +142,37 @@ $wg_utentigas->header = array(
         console.log("pagefunction");
         //------------HELP WIDGET
         document.title = '<?php echo "ReteDES.it :: $page_title";?>';
-        <?php echo help_render_js('gas_utenti');?>
+        <?php echo help_render_js($page_id);?>
         //------------END HELP WIDGET
         var oTable= $('#dt_utenti_gas').dataTable({
+                                            
+                                            "sDom": "<'dt-toolbar'<'col-xs-12 col-sm-6'f><'col-sm-6 col-xs-6 hidden-xs'T C>r>"+
+                                                    "t"+
+                                                    "<'dt-toolbar-footer'<'col-sm-6 col-xs-12 hidden-xs'i><'col-sm-6 col-xs-12'p>>",
+                                            "oTableTools": {
+                                                 "aButtons": [
+                                                 "copy",
+                                                 "csv",
+                                                 {
+                                                        "sExtends": "xls",
+                                                        "sFileName": "*.xls"
+                                                    },
+                                                 //"xls",
+                                                    {
+                                                        "sExtends": "pdf",
+                                                        "sTitle": "Utenti <?php echo _USER_GAS_NOME;?>",
+                                                        "sPdfMessage": "reteDES.it PDF Export",
+                                                        "sPdfSize": "letter"
+                                                    },
+                                                     {
+                                                        "sExtends": "print",
+                                                        "sMessage": "Generato con reteDES.it <i>(premiESC per uscire)</i>"
+                                                    }
+                                                 ],
+                                                "sSwfPath": "../gas4/js/plugin/datatables/swf/copy_csv_xls_pdf.swf"
+                                            },
                                             "bPaginate": false
                                         });
-        var id;
-        var messaggio;
-
-        $('#manda_messaggio_a_utenti').click(function(){
-            console.log("Click");
-            values = $('input:checkbox:checked.utente').map(function () {
-              return this.value;
-            }).get();
-            messaggio = $('#messaggio_a_utenti').val();
-            console.log("Messaggio " + messaggio);
-            if(!messaggio){
-                ko("Messaggio vuoto");
-            }
-            else if(values.length==0){
-                ko("Nessun destinatario");
-            }else{
-            console.log(values);
-
-            $.SmartMessageBox({
-                title : "Messaggia",
-                content : "Confermi? la mail sarà inviata a " + values.length + " utenti",
-                buttons : "[Esci][INVIA]"
-            }, function(ButtonPress, Value) {
-
-                if(ButtonPress=="INVIA"){
-
-                    $.ajax({
-                          type: "POST",
-                          url: "ajax_rd4/gas/_act.php",
-                          dataType: 'json',
-                          data: {act: "messaggia_utenti", values : values, messaggio : messaggio},
-                          context: document.body
-                        }).done(function(data) {
-                            if(data.result=="OK"){
-                                    ok(data.msg);
-                                    //location.reload();
-                            }else{
-                                ko(data.msg);
-                            }
-
-                        });
-                }
-            });
-
-
-
-
-        }//messaggio vuoto
-
-        });
-
-
-        $('.selectall').click(function(event) {  //on click
-            console.log("Click select");
-            if(this.checked) { // check select status
-                $('.utente').each(function() { //loop through each checkbox
-                    this.checked = true;  //select all checkboxes with class "checkbox1"
-                });
-            }else{
-                $('.utente').each(function() { //loop through each checkbox
-                    this.checked = false; //deselect all checkboxes with class "checkbox1"
-                });
-            }
-        });
-
-
 
 
 
@@ -343,112 +215,39 @@ $wg_utentigas->header = array(
             $('#remoteModal').modal('hide');
         });
 
-        $('.show_Attesa').click(function(){oTable.fnFilter( 'in Attesa',5 );});
-        $('.show_Attivi').click(function(){oTable.fnFilter( 'Attivo',5 );});
-        $('.show_Sospesi').click(function(){oTable.fnFilter( 'Sospeso',5 );});
-        $('.show_Eliminati').click(function(){oTable.fnFilter( 'Eliminato',5 );});
-        $('.show_Tutti').click(function(){  oTable.fnFilter('',5);
-                                            oTable.fnFilter('');});
+        //$('.show_Attesa').click(function(){oTable.fnFilter( 'in Attesa',5 );});
+        //$('.show_Attivi').click(function(){oTable.fnFilter( 'Attivo',5 );});
+        //$('.show_Sospesi').click(function(){oTable.fnFilter( 'Sospeso',5 );});
+        //$('.show_Eliminati').click(function(){oTable.fnFilter( 'Eliminato',5 );});
+        //$('.show_Tutti').click(function(){  oTable.fnFilter('',5);
+        //                                    oTable.fnFilter('');});
         //MOstro solo gli attivi
-        oTable.fnFilter( 'Attivo',5 );
+        //oTable.fnFilter( 'Attivo',5 );
 
         //se clicco
-        $('#dt_utenti_gas tbody').on( 'click', 'tr', function () {
-            var value = $(this).attr('rel');
-                $.ajax({
-                  type: "POST",
-                  url: "ajax_rd4/gas/inc/info_utente.php",
-                  data: {userid : value},
-                  context: document.body
-               }).done(function(data) {
-
-                   $('#schedina_utente').html(data);
-
-
-            });
-        } );
+        //$('#dt_utenti_gas tbody').on( 'click', 'tr', function () {
+        //    var value = $(this).attr('rel');
+         //       $.ajax({
+         //         type: "POST",
+        //          url: "ajax_rd4/gas/inc/info_utente.php",
+        //          data: {userid : value},
+        //          context: document.body
+        //       }).done(function(data) {
+        //
+        //           $('#schedina_utente').html(data);
+        //
+        //
+        //    });
+        //} );
 
 
     } // end pagefunction
 
 
-    var attiva = function(userid, fullname) {
 
-            $.SmartMessageBox({
-                title : "Attiva " + fullname,
-                content : "Verrà comunicata l'avvenuta attivazione con una mail.",
-                buttons : "[Esci][Attiva]"
-            }, function(ButtonPress, Value) {
 
-                if(ButtonPress=="Attiva"){
 
-                    $.ajax({
-                          type: "POST",
-                          url: "ajax_rd4/gas/_act.php",
-                          dataType: 'json',
-                          data: {act: "attiva_utente", value : userid},
-                          context: document.body
-                        }).done(function(data) {
-                            if(data.result=="OK"){
-                                    ok(data.msg);}else{ko(data.msg);}
-                                    //location.reload();
-                        });
-                }
-            });
-        }
-    var sospendi = function(userid, fullname) {
 
-            $.SmartMessageBox({
-                title : "Sospendi " + fullname,
-                content : "L'utente rimarrà sospeso fino ad una nuova riattivazione.",
-                buttons : "[Esci][Sospendi]"
-            }, function(ButtonPress, Value) {
-
-                if(ButtonPress=="Sospendi"){
-
-                    $.ajax({
-                          type: "POST",
-                          url: "ajax_rd4/gas/_act.php",
-                          dataType: 'json',
-                          data: {act: "sospendi_utente", value : userid},
-                          context: document.body
-                        }).done(function(data) {
-                            if(data.result=="OK"){
-                                    ok(data.msg);
-                                    //location.reload();
-                            }else{ko(data.msg);}
-
-                        });
-                }
-            });
-        }
-
-        var elimina = function(userid, fullname) {
-
-            $.SmartMessageBox({
-                title : "Elimina " + fullname,
-                content : "L'utente eliminato non potrà più accedere, nè reiscriversi con la stessa mail.<br>Tutti i suoi dati (ordini, listini ecc) saranno comunque conservati.",
-                buttons : "[Esci][Elimina]"
-            }, function(ButtonPress, Value) {
-
-                if(ButtonPress=="Elimina"){
-
-                    $.ajax({
-                          type: "POST",
-                          url: "ajax_rd4/gas/_act.php",
-                          dataType: 'json',
-                          data: {act: "elimina_utente", value : userid},
-                          context: document.body
-                        }).done(function(data) {
-                            if(data.result=="OK"){
-                                    ok(data.msg);
-                                    //location.reload();
-                            }else{ko(data.msg);}
-
-                        });
-                }
-            });
-        }
 
 
 

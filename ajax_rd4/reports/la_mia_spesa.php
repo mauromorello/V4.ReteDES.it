@@ -19,7 +19,8 @@ $orientation = "landscape"; // portrait / landscape
 
 
 //-----------------------------------CONTENT
-$html='<table id="table_exp" class="rd4" style="margin-left: auto; margin-right: auto">
+$html= '<h3>Ordine #'.$O->id_ordini.' - '.$O->descrizione_ordini.'</h3>';
+$html.='<table id="table_exp" class="rd4" style="margin-left: auto; margin-right: auto">
             <thead >
                 <tr class="intestazione" >
                     <th style="width:10%;">Codice</th>
@@ -29,13 +30,14 @@ $html='<table id="table_exp" class="rd4" style="margin-left: auto; margin-right:
                     <th style="width:10%;">Prezzo</th>
                     <th style="width:5%;">Totale articoli</th>
                     <th style="width:5%;">Totale rettifiche</th>
-                    <th style="width:10%;">Totale </th>
+                    <th style="width:5%;">Totale GAS</th>
+                    <th style="width:5%;">Totale </th>
                 </tr>
             </thead>
             <tbody>';
 //-----------------------------------DATI
 
-$sql = "SELECT art_codice, art_desc, art_um, qta_ord, qta_arr, prz_dett_arr, prz_dett FROM retegas_dettaglio_ordini WHERE id_ordine=:id_ordine AND id_utenti='"._USER_ID."'";
+$sql = "SELECT art_codice, art_desc, art_um, qta_ord, qta_arr, prz_dett_arr, prz_dett, descrizione_ditta FROM retegas_dettaglio_ordini WHERE id_ordine=:id_ordine AND id_utenti='"._USER_ID."' ORDER BY id_ditta DESC";
 $stmt = $db->prepare($sql);
 $stmt->bindParam(':id_ordine', $O->id_ordini, PDO::PARAM_INT);
 $stmt->execute();
@@ -48,18 +50,28 @@ foreach($rows AS $row){
         $row_class="even";
     }
 
+    $totale_articoli = round($row["qta_arr"]*$row["prz_dett_arr"],4);
+    $totale_costi = "";
+    $totale_costi_gas ="";
+    $qta_ord = $row["qta_ord"];
+
     $pos = strrpos($row["art_codice"], "@@");
-    if ($pos === false) {
-        // not found...
-        $totale_articoli = round($row["qta_arr"]*$row["prz_dett_arr"],4);
-        $totale_costi = "";
-        $qta_ord = $row["qta_ord"];
-    }else{
+    if (!($pos === false)) {
         $totale_costi = round($row["qta_arr"]*$row["prz_dett_arr"],4);
         $totale_articoli = "";
+        $totale_costi_gas="";
         $row_class = "costo";
         $qta_ord="";
     }
+    $pos = strrpos($row["art_codice"], "##");
+    if (!($pos === false)) {
+        $totale_costi_gas = round($row["qta_arr"]*$row["prz_dett_arr"],4);
+        $totale_costi ="";
+        $totale_articoli = "";
+        $row_class = "costo_gas";
+        $qta_ord="";
+    }
+
     $label="";
     $label_prz ="";
 
@@ -72,31 +84,59 @@ foreach($rows AS $row){
     if(round($row["prz_dett"],4)<>round($row["prz_dett_arr"],4)){
         $label_prz = '<br><div style="text-align:center; padding:1px; background-color:#AC5301; color:#FFF; font-size:10px;">MODIFICATO</div>';
     }
+
+    if($totale_articoli>0){
+        $totale_articoli_show = _NF($totale_articoli);
+    }else{
+        $totale_articoli_show = "";
+    }
+
+    if($totale_costi>0){
+        $totale_costi_show = _NF($totale_costi);
+    }else{
+        $totale_costi_show = "";
+    }
+
+    if($totale_costi_gas>0){
+        $totale_costi_gas_show = _NF($totale_costi_gas);
+    }else{
+        $totale_costi_gas_show = "";
+    }
+
+    if($O->is_multiditta){
+        $multiditta='<br><span class="font-sm">da <i>'.$row["descrizione_ditta"].'</i></span>';
+    }else{
+        $multiditta='';
+    }
+
     $html.='<tr class="'.$row_class.'">';
     $html.='<td>'.$row["art_codice"].'</td>';
-    $html.='<td>'.$row["art_desc"].' <span class="note">('.$row["art_um"].')</span></td>';
-    $html.='<td style="text-align:center">'.number_format($qta_ord,2, ',', '').'</td>';
-    $html.='<td style="text-align:center">'.number_format($row["qta_arr"],2, ',', '').$label.'</td>';
-    $html.='<td style="text-align:right">'.number_format($row["prz_dett_arr"],2, ',', '').' &#0128;'.$label_prz.'</td>';
-    $html.='<td style="text-align:right"><strong>'.number_format($totale_articoli,2, ',', '').'</strong></td>';
-    $html.='<td style="text-align:right">'.number_format($totale_costi,2, ',', '').'</td>';
+    $html.='<td>'.$row["art_desc"].' <span class="note">('.$row["art_um"].')</span>'.$multiditta.'</td>';
+    $html.='<td style="text-align:center">'._NF($qta_ord).'</td>';
+    $html.='<td style="text-align:center">'._NF($row["qta_arr"]).$label.'</td>';
+    $html.='<td style="text-align:right">'._NF($row["prz_dett_arr"]).' &#0128;'.$label_prz.'</td>';
+    $html.='<td style="text-align:right"><strong>'.$totale_articoli_show.'</strong></td>';
+    $html.='<td style="text-align:right">'.$totale_costi_show.'</td>';
+    $html.='<td style="text-align:right">'.$totale_costi_gas_show.'</td>';
     $html.='<td style="text-align:right"></td>';
     $html.='</tr>';
 
     $totaleA += round($totale_articoli,4);
     $totaleC += round($totale_costi,4);
+    $totaleG += round($totale_costi_gas,4);
 
 }
     if($totaleC==0){$totaleC="";}
-    $totaleT = $totaleA+$totaleC;
+    $totaleT = $totaleA+$totaleC+$totaleG;
 //-----------------------------------DATI
 $html.='    </tbody>
             <tfoot>
                 <tr class="totale">
                     <th colspan=5 style="text-align:right">Totali</th>
-                    <th style="text-align:right"><strong>'.number_format($totaleA,2, ',', '').' </strong></th>
-                    <th style="text-align:right"><strong>'.number_format($totaleC,2, ',', '').' </strong></th>
-                    <th style="text-align:right"><strong>'.number_format($totaleT,2, ',', '').' </strong></th>
+                    <th style="text-align:right"><strong>'._NF($totaleA).' </strong></th>
+                    <th style="text-align:right"><strong>'._NF($totaleC).' </strong></th>
+                    <th style="text-align:right"><strong>'._NF($totaleG).' </strong></th>
+                    <th style="text-align:right"><strong>'._NF($totaleT).' </strong></th>
                 </tr>
             </tfoot>
          </table>';
@@ -125,10 +165,10 @@ if($_POST["o"]=="pdf"){
       exit(0);
 }
 
-$buttons[]='<button  data-id_ordine="'.$O->id_ordini.'" class="show_pdf btn btn-defalut btn-default"><i class="fa fa-file-pdf-o"></i>  PDF</button>';
-$buttons[]='<button  onclick="selectElementContents( document.getElementById(\'table_exp\') ); " class="btn btn-default btn-default"><i class="fa fa-copy"></i>  COPIA</button>';
-$buttons[]='<button  data-id_ordine="" class="btn btn-default btn-default" onclick=\'printDiv("table_container")\'><i class="fa fa-print"></i>  Stampa</button>';
-$buttons[]='<button  data-id_ordine="'.$O->id_ordini.'" class="btn btn-default btn-default" onclick=\'$("#opzioni_report").toggleClass("hidden");\'><i class="fa fa-gear"></i>  Opzioni</button>';
+$buttons[]='<button  data-id_ordine="'.$O->id_ordini.'" class="show_pdf btn btn-defalut btn-default"><i class="fa fa-file-pdf-o"></i><span class="hidden-xs">  PDF</span></button>';
+$buttons[]='<button  onclick="selectElementContents( document.getElementById(\'table_exp\') ); " class="btn btn-default btn-default"><i class="fa fa-copy"></i><span class="hidden-xs">  COPIA</span></button>';
+$buttons[]='<button  data-id_ordine="" class="btn btn-default btn-default" onclick=\'printDiv("table_container")\'><i class="fa fa-print"></i><span class="hidden-xs">  Stampa</span></button>';
+$buttons[]='<button  data-id_ordine="'.$O->id_ordini.'" class="btn btn-default btn-default" onclick=\'$("#opzioni_report").toggleClass("hidden");\'><i class="fa fa-gear"></i><span class="hidden-xs">  Opzioni</span></button>';
 
 
 ?>
@@ -165,7 +205,7 @@ Nessuna opzione per questo report.
         $('.show_pdf').click(function(){
             var $this = $(this);
             var id = $this.data('id_ordine');
-            open('POST', 'http://retegas.altervista.org/gas4/ajax_rd4/reports/la_mia_spesa.php', {id:id, o:'pdf', dummy:<?php echo rand(1000,9999); ?> }, '_blank');
+            open('POST', '<?php echo APP_URL; ?>/ajax_rd4/reports/la_mia_spesa.php', {id:id, o:'pdf', dummy:<?php echo rand(1000,9999); ?> }, '_blank');
             return false;
         });
 

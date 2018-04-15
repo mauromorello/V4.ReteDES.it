@@ -1,5 +1,6 @@
 <?php
-$page_title = "Listino ";
+$page_title = "Listino";
+$page_id ="listino";
 require_once("inc/init.php");
 require_once("../../lib_rd4/class.rd4.listino.php");
 
@@ -18,6 +19,57 @@ if($id_listino==0){
 
 $L = new listino($id_listino);
 
+//AMAZON S3
+$bucket = 'retedes';
+$folder = 'public_rd4/note_listini/'.$L->id_listini.'/';
+
+// these can be found on your Account page, under Security Credentials > Access Keys
+$accessKeyId = __AMAZON_S3_ACCESS_KEY;
+$secret = __AMAZON_S3_SECRET_KEY;
+
+$policy = base64_encode(json_encode(array(
+  // ISO 8601 - date('c'); generates uncompatible date, so better do it manually
+  'expiration' => date('Y-m-d\TH:i:s.000\Z', strtotime('+2 days')),
+  'conditions' => array(
+    array('bucket' => $bucket),
+    array('acl' => 'public-read'),
+    array('success_action_status' => '201'),
+    array('starts-with', '$key', $folder.'/')
+  )
+)));
+
+$signature = base64_encode(hash_hmac('sha1', $policy, $secret, true));
+//AMAZON S3
+
+
+//VEDO SE l'utente corrente ha lisini multiditta
+$stmt = $db->prepare("SELECT id_listini, descrizione_listini FROM  retegas_listini WHERE id_ditte=0 and id_utenti="._USER_ID);
+$stmt->execute();
+$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$i=0;
+foreach ($rows as $row){
+    $i++;
+    $o.= '<option value="'.$row["id_listini"].'">'.$row["id_listini"].' - '.$row["descrizione_listini"].'</option>';
+}
+
+if($i>0 AND (!$L->is_multiditta)){
+    $user_ha_multiditta=true;
+    $md='<div class="well well-sm"><h1><i class="fa fa-truck text-success"></i>&nbsp;<i class="fa fa-truck text-danger"></i>&nbsp;<i class="fa fa-truck text-warning"></i>&nbsp;Hai listini multiditta:</h1>
+                       <p>Se vuoi inserire articoli in un tuo listino multiditta, selezionalo qua sotto, poi seleziona gli articoli che vuoi copiare e clicca su "trasferisci articoli".</p>
+                       <div class="row">
+                       <div class="col col-xs-6">
+                       <select class="select2" id="select_multiditta">
+                            '.$o.'
+                       <select>
+                       </div>
+                       <div class="col col-xs-6">
+                       <button id="aggiungi_multiditta" class="btn btn-success">TRASFERISCI ARTICOLI</button></div>
+                       </div>
+                       </div>';
+}else{
+    $user_ha_multiditta=false;
+    $md='';
+}
 
 if(posso_gestire_listino($id_listino)){
     $proprietario="true";
@@ -30,6 +82,9 @@ if(posso_gestire_listino($id_listino)){
     //$buttons[] ='<a href="javascript:void(0);"><i class="fa fa-lock fa-2x fa-border text-danger" rel="popover" data-placement="left" data-original-title="Permessi" data-content="Non sei l\'autore di questo listino."></i></a>';
 }
 
+
+
+
 $stmt = $db->prepare("SELECT * FROM  retegas_listini WHERE id_listini = :id_listino LIMIT 1;");
 $stmt->bindParam(':id_listino', $id_listino, PDO::PARAM_INT);
 $stmt->execute();
@@ -41,6 +96,16 @@ if(!$L->is_completo){
     $incompleto=false;
 }
 
+//---------------DELETED
+if($row["is_deleted"]==1){
+    echo rd4_go_back("Listino inesistente");
+    die();    
+}
+
+
+//---------------DELETED
+
+
 if($row["tipo_listino"]==1){
     $tipo="Magazzino";
 }else{
@@ -51,7 +116,11 @@ if($row["is_privato"]==1){
 }else{
     $privato="Pubblico";
 }
-
+if($row["is_multiditta"]==1){
+    $multiditta="Multiditta";
+}else{
+    $multiditta="Monoditta";
+}
 
 
 $stmt = $db->prepare("SELECT U.fullname,G.descrizione_gas  FROM  maaking_users U inner join retegas_gas G on G.id_gas=U.id_gas WHERE userid = :userid;");
@@ -105,13 +174,19 @@ $r = $stmt->fetch(PDO::FETCH_ASSOC);
 $numero_gas = $r["count"];
 
 if($incompleto){
-$alert_incompleto= '<i class="fa fa-warning fa-2x text-danger"></i> ';
+    $alert_incompleto= '<i class="fa fa-warning fa-2x text-danger"></i> ';
+    $multiditta='<p class="font-lg '.$editable.'_multiditta" id="is_multiditta" data-type="select" data-pk="'.$L->id_listini.'" data-value="'.$L->is_multiditta.'">'.$multiditta.'</p>';
+    $nuovo_ordine ='';
+}else{
+    $multiditta='<p class="font-lg '.$editable.'_multiditta" id="is_multiditta" data-type="select" data-pk="'.$L->id_listini.'" data-value="'.$L->is_multiditta.'">'.$multiditta.'</p>';
+    $nuovo_ordine ='';
 }
 
 $rows = $L->lista_referenti_extra();
 if(count($rows)>0){
     foreach($rows as $row){
-       if($row["valore_int"]==0){
+        $op2='';
+        if($row["valore_int"]==0){
            if($L->id_utenti==_USER_ID){
                 $op1='<div class="btn-group pull-right">
                                     <a class="btn btn-xs btn-success attiva_extra" href="javascript:void(0);" data-id_listini="'.$L->id_listini.'" data-id_user="'.$row["id_user"].'"><i class="fa fa-check"></i> attiva</a>
@@ -136,6 +211,13 @@ if(count($rows)>0){
                             </span>
                         </li>';
        }else{
+        if($L->id_utenti==_USER_ID){
+            $op2='<div class="btn-group pull-right">
+                                    <a class="btn btn-xs btn-danger elimina_extra" href="javascript:void(0);" data-id_listini="'.$L->id_listini.'" data-id_user="'.$row["id_user"].'"><i class="fa fa-times"></i></a>
+                                </div>';
+        }else{
+            $op2='';
+        }
         $gestori_extra_ok.= '<li>
                             <span class="read">
                                 <a href="javascript:void(0);" class="msg">
@@ -157,20 +239,26 @@ if(count($rows)>0){
     if(empty($gestori_extra_attesa)){$gestori_extra_attesa='<li>Nessuno.</li>';}
 
 $s = '  <div>
-
+            <h3>Scheda</h3>
             <img id="img_listino" src="img_rd4/t_'.$L->id_tipologie.'_240.png" alt="" class="air air-top-right margin-top-5" width="80" height="80">
             <label for="descrizione_listini">Identificativo:</label>
             <p class="font-lg" id="id_listino" >#'.$L->id_listini.'</p>
             <label for="descrizione_listini">Descrizione</label>
             <p class="font-lg '.$editable.'" id="descrizione_listini" data-type="text" data-pk="'.$L->id_listini.'">'.$L->descrizione_listini.'</p>
+            <nr>
             <label for="data_valido">'.$alert_incompleto.' Termine di validità</label>
             <p class="font-lg '.$editable.'" id="data_valido" data-type="date" data-pk="'.$L->id_listini.'" data-format="dd/mm/yyyy">'.$L->data_valido.'</p>
+            <hr>
             <label for="tipo_listino" >Tipo listino</label>
             <p class="font-lg '.$editable.'_tipo" id="tipo_listino" data-type="select" data-pk="'.$L->id_listini.'" data-value="'.$L->tipo_listino.'">'.$tipo.'</p>
+            '.$multiditta.'
+            <hr>
             <label for="tipo_listino">Pubblico / Privato</label>
             <p class="font-lg '.$editable.'_privato" id="is_privato" data-type="select" data-pk="'.$L->id_listini.'" data-value="'.$L->is_private.'">'.$privato.'</p>
+            <hr>
             <label for="id_tipologie">'.$alert_incompleto.' Categoria</label>
             <p class="font-lg '.$editable.'_tipologia" id="id_tipologie" data-type="select" data-pk="'.$L->id_listini.'" data-value="'.$L->id_tipologie.'">'.$L->descrizione_tipologia.'</p>
+            <hr>
             <div class="row padding-10">
             <h4>Gestori extra in attesa:</h4>
             <ul class="list-unstyled">'.$gestori_extra_attesa.'</ul></div>
@@ -202,7 +290,7 @@ $a = '
             <div id="pjqgrid"></div>
         </div>
         <div class="margin-top-10 well well-sm well-light">
-                <span>Usa le frecce a destra per ingrandire la tabella. Seleziona quante righe devono essere visualizzate per ogni pagina.</span>
+                <span>Usa le frecce a destra per ingrandire la tabella. Seleziona quante righe devono essere visualizzate per ogni pagina. Gestisci gli articoli dalla pagina apposita, cliccando su "gestisci articoli"; questa voce ti compare solo se hai i permessi per farlo.</span>
                 <a id="aumenta_altezza" class="btn btn-circle btn-default pull-right"><i class="fa fa-arrow-down"></i></a>
                 <a id="diminuisci_altezza" class="btn btn-circle btn-default pull-right"><i class="fa fa-arrow-up"></i></a>
                 <span class="btn btn-circle btn-default pull-right" data-action="minifyMenu" style=""><i class="fa fa-arrow-left"></i></span>
@@ -255,10 +343,16 @@ if($proprietario=="true"){
     $cancella='';
     $aiuta_a_gestire='<hr><a class="btn btn-primary btn-block" id="aiuta_a_gestire">AIUTA A GESTIRE</a>';
 }
-if($n_articoli>0){
-    if(posso_gestire_listino($L->id_listini)){
+
+if(posso_gestire_listino($L->id_listini)){
         $gestisci_articoli ='<hr><a class="btn btn-info btn-block" id="gestisci_articoli">GESTISCI ARTICOLI</a>';
-    }
+        $visualizza_log ='<hr><a class="btn btn-default btn-block" id="visualizza_log">VISUALIZZA LOG</a>';
+
+  }
+
+
+if($n_articoli>0){
+
     $esporta =' <hr class="margin-top-5">
         <label for="exp_group">Esporta questo listino:</label>
         <div class="btn-group pull-right" id="exp_group">
@@ -279,36 +373,40 @@ if($n_articoli>0){
                         </div>
        </div>';
     $clona='<hr><a class="btn btn-success btn-block" id="clona_listino">CLONA LISTINO</a>';
+    $nuovo_ordine='<hr>
+                    <h4>APRI L\'ORDINE</h4><br>
+                    <form class="smart-form">
+                        <section>
+                            <label class="input">
+                                <input class="input-sm" name="nomeordine" value="'.$L->descrizione_listini.'" id="nomeordine">
+                            </label>
+                        </section>
+                    </form>
+                    <a class="btn btn-default btn-block" id="ordine_nuovo">OK</a>';
 }else{
     $esporta ='';
     $clona='';
+    $nuovo_ordine='';
 }
 
 
 
 
 
-$o = '
+$o = ' <h3>Operatività</h3>
        '.$esporta.'
        '.$upload.'
        '.$clona.'
+
        '.$cancella.'
        '.$gestisci_articoli.'
+       '.$visualizza_log.'
        '.$aiuta_a_gestire.'
+       '.$nuovo_ordine.'
        <hr>
 ';
 
-$options = array(   "editbutton" => false,
-                    "fullscreenbutton"=>false,
-                    "deletebutton"=>false,
-                    "colorbutton"=>true);
-$wg_articoli_oper = $ui->create_widget($options);
-$wg_articoli_oper ->id = "wg_listino_articoli_operazioni";
-$wg_articoli_oper ->body = array("content" => $o,"class" => "");
-$wg_articoli_oper ->header = array(
-    "title" => '<h2>Operatività</h2>',
-    "icon" => 'fa fa-gear'
-    );
+
 
 //INCOMPLETO
 
@@ -320,14 +418,84 @@ if($incompleto){
     $inco = '';
 }
 
+$L->lista_referenti_extra();
+
+//SE C'E' UN ORDINE APERTO O CHIUSO NON CONVALIDATO
+$rowOs = $L->lista_ordini_che_bloccano_eliminazioni();
+$noie=0;
+
+foreach($rowOs as $rowO){
+    $oie.='<p>#'.$rowO["id_ordini"].' '.$rowO["descrizione_ordini"].'</p>';
+    $noie++;
+}
+if($noie==0){
+    $oie='';
+}else{
+    if(_USER_PERMISSIONS & perm::puo_gestire_retegas){
+        $oie='<div class="panel panel-red padding-10"><h3>Ordini che bloccano il listino:</h3>'.$oie.'</div>';
+    }else{
+        if(posso_gestire_listino($L->id_listini)){
+            $buttons[]='<a class="btn btn-link" href="#ajax_rd4/listini/listini_log-php?id='.$L->id_listini.'"><i class="fa fa-list"></i> LOG Listino</a>';
+            $oie='<p class="alert alert-danger">Ci sono <strong>'.$noie.'</strong> ordini aperti o chiusi ma non confermati che limitano l\'operatività su questo listino.</p>';
+        }else{
+            $oie='';
+        }
+    }
+
+}
+
 //NAVBAR
 //$title='<i class="fa fa-cubes fa-2x pull-left"></i> '.$row["descrizione_listini"].'<br><small class="note"></small>';
 
+if(posso_gestire_listino($L->id_listini)){
+
+    $rows = $L->lista_segnalazioni_listino();
+    foreach($rows as $row){
+        if($row["is_hidden"]==0){
+            $lsl .='<li class="list-item"><i class="fa fa-times text-danger hide_segnalazione" data-id="'.$row["id_segnalazione"].'" style="cursor:pointer;"></i> '.$row["testo_segnalazione"].' <span class="note">di '.$row["fullname_segnalante"].' del '.conv_date_from_db($row["data_segnalazione"]).'</a></li>';    
+        }
+    }    
+    if($lsl<>""){
+        $lsl='
+                <div class="well well-sm margin-top-10">
+                <h1>Segnalazioni per questo listino:</h1>
+                <ul class="list-unstyled">
+                    '.$lsl.'
+                </ul>
+                </div>';
+    }
+    
+}else{
+    $rows = $L->lista_segnalazioni_listino();
+    foreach($rows as $row){
+        if($row["id_segnalante"]==_USER_ID){
+            $lsl .='<li class="list-item"><i class="fa fa-bullhorn text-success"></i> '.$row["testo_segnalazione"].'  <span class="note">del '.conv_date_from_db($row["data_segnalazione"]).'</span></li>';    
+        }
+    }    
+    
+    if($lsl<>""){
+        $lsl='
+                <div class="well well-sm margin-top-10">
+                <h1>Hai fatto queste segnalazioni:</h1>
+                <ul class="list-unstyled">
+                    '.$lsl.'
+                </ul>
+                </div>';
+    }    
+    
+}    
+
 
 ?>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.1/summernote.css" rel="stylesheet">
 
-<?php echo $L->navbar_listino(); ?>
+<?php echo $L->navbar_listino($buttons); ?>
+<?php echo $lsl; ?>
+<div class="alert alert-info"><i class="fa fa-2x fa-bullhorn"></i> Qualcosa non quadra?&nbsp; <span style="cursor:pointer" data-toggle="modal" data-target="#modal_segnalazione_listino" id="chiedi_info_button"><strong>Segnalalo ai gestori!</strong></span></div>
+<hr>
+
 <?php echo $inco; ?>
+<?php echo $oie; ?>
 <section id="widget-grid" class="margin-top-10">
     <div class="row">
         <!-- PRIMA COLONNA-->
@@ -336,13 +504,28 @@ if($incompleto){
     </div>
     <div class="row">
         <!-- PRIMA COLONNA-->
-        <article class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
-            <?php echo $wg_articoli_oper->print_html(); ?>
-        </article>
-        <article class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
-            <?php if(posso_gestire_listino($L->id_listini)){echo $wg_listino->print_html();} ?>
-        </article>
+        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+            <div class="well padding-10"><?php echo $o;?></div>
+            <?php //echo $wg_articoli_oper->print_html(); ?>
+        </div>
+        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+            <div class="well padding-10">
+                <?php if(posso_gestire_listino($L->id_listini)){echo $s;} ?>
+            </div>
+            <?php //if(posso_gestire_listino($L->id_listini)){echo $wg_listino->print_html();} ?>
+        </div>
 
+    </div>
+    <hr>
+
+    <div class="row">
+        <!-- NOTE LISTINO-->
+        <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+                 <label for="summernote">Note di questo listino</label>
+                <div id="summernote"><?php echo $L->note_listino; ?></div>
+                <button class="btn btn-primary pull-right margin-top-10" id="go_note_listino">Salva le note</button>
+                <div class="clearfix"></div>
+        </article>
     </div>
 
     <hr>
@@ -350,9 +533,13 @@ if($incompleto){
     <div class="row">
         <!-- PRIMA COLONNA-->
         <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+            <?php echo $md;?>
             <?php echo $wg_articoli->print_html(); ?>
-            <?php echo help_render_html('listino',$page_title); ?>
+            <?php echo help_render_html($page_id,$page_title); ?>
+
         </article>
+
+
     </div>
 </section>
 <!-- Dynamic Modal -->
@@ -378,6 +565,40 @@ if($incompleto){
                                 </div>
                             </div>
                         </div>
+                        <div class="modal fade" id="modal_segnalazione_listino" tabindex="-1" role="dialog" aria-labelledby="richiesta_info_Label">
+                              <div class="modal-dialog" role="document">
+                                <div class="modal-content">
+                                  <div class="modal-header">
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                                    <h4 class="modal-title" id="myModalLabel">Segnalazione sul listino #<?php echo $id_listino; ?></h4>
+
+                                  </div>
+                                  <div class="modal-body">
+                                    <form class="form-horizontal" role="form">
+                                      <div class="form-group">
+                                        <label  class="col-sm-2 control-label"
+                                                  for="inputEmail3">Messaggio</label>
+                                        <div class="col-sm-10">
+                                            <textarea type="textarea" class="form-control" id="inputEmail3" placeholder="scrivi qua..." rows="6"></textarea>
+                                        </div>
+                                      </div>
+
+
+                                      <div class="form-group">
+                                        <div class="col-sm-offset-2 col-sm-10">
+                                          <button type="submit" class="btn btn-default" id="do_segnalazione_listino">Invia</button>
+                                          <p class="note margin-top-10">Cliccando su "invia" verrà inoltrata una mail ai gestori del listino e al gestore del GAS di appartenenza;</p>
+                                        </div>
+                                      </div>
+                                    </form>
+                                    
+                                  </div>
+                                  <div class="modal-footer">
+                                    <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
 <!-- /.modal -->
 
 <script type="text/javascript">
@@ -463,6 +684,36 @@ if($incompleto){
         loadScript("js/plugin/dropzone/dropzone.min.js",initDropzone);
         <?php }?>
 
+        function sendFile(file, editor, welEditable, dup, container) {
+          console.log("sendfile acting...");
+
+          formData = new FormData();
+          formData.append('key', '<?php echo $folder; ?>/' + file.name);
+          formData.append('AWSAccessKeyId', '<?php echo $accessKeyId; ?>');
+          formData.append('acl', 'public-read');
+          formData.append('policy', '<?php echo $policy; ?>');
+          formData.append('signature', '<?php echo $signature; ?>');
+          formData.append('success_action_status', '201');
+          formData.append('file', file);
+
+          $.ajax({
+            data: formData,
+            dataType: 'xml',
+            type: "POST",
+            cache: false,
+            contentType: false,
+            processData: false,
+            url: "https://<?php echo $bucket ?>.s3.amazonaws.com/",
+            success: function(data) {
+              console.log("sendfile success!!");
+              // getting the url of the file from amazon and insert it into the editor
+              var url = $(data).find('Location').text();
+              //editor.insertImage(welEditable, url);
+              $(container).summernote('editor.insertImage', url);
+              $('.sto_caricando').hide();
+            }
+          });
+        }
 
         function run_jqgrid_function() {
             var rowid;
@@ -497,7 +748,7 @@ if($incompleto){
                    {name:'prezzo',index:'prezzo', width:50,align:"right",editable:is_editable,search:false},
 
                    {name:'u_misura',index:'u_misura', width:20,align:"right",editable:is_editable,search:false},
-                   {name:'misura',index:'misura', width:30,align:"left",editable:is_editable,search:false},
+                   {name:'misura',index:'misura', width:30,align:"right",editable:is_editable,search:false},
 
                    {name:'ingombro',index:'ingombro', width:50, editable:is_editable,search:false,edittype:'textarea'},
 
@@ -514,7 +765,7 @@ if($incompleto){
 
                ],
 
-               multiselect: false,
+               multiselect: true,
                onSelectRow:function(id){
                     var lastsel= jQuery('#jqgrid').jqGrid('getGridParam','selrow');
                     console.log(lastsel);
@@ -614,12 +865,35 @@ if($incompleto){
                 jQuery("#jqgrid").jqGrid('setGridWidth', $("#jqgcontainer").width());
                 jQuery("#jqgrid").jqGrid('setGridHeight', $("#jqgcontainer").height() - ($("#gbox_jqgrid").height() - $('#gbox_jqgrid .ui-jqgrid-bdiv').height()));
 
-
+            $("#aggiungi_multiditta").click(function(){
+                var grid = jQuery("#jqgrid").jqGrid();
+                var rowKey = grid.getGridParam("selrow");
+                if (!rowKey)
+                    ko("Nessun articolo selezionato");
+                else {
+                    var selectedIDs = grid.getGridParam("selarrrow");
+                    var listino_multiditta = $("#select_multiditta").val();
+                    console.log(listino_multiditta + " " + selectedIDs);
+                    $.ajax({
+                      type: "POST",
+                      url: "ajax_rd4/listini/_act.php",
+                      dataType: 'json',
+                      data: {act: "aggiungi_multiditta", selectedIDs : selectedIDs, id_listino:listino_multiditta},
+                      context: document.body
+                    }).done(function(data) {
+                        if(data.result=="OK"){
+                            ok(data.msg);
+                        }else{
+                            ko(data.msg)
+                        ;}
+                    });
+                }
+            })
         } // end jqgrid init
 
 
         //-------------------------HELP
-        <?php echo help_render_js("listino"); ?>
+        <?php echo help_render_js($page_id); ?>
         //-------------------------HELP
 
 
@@ -676,6 +950,24 @@ if($incompleto){
                                     }
                                 }
                             });
+      $(".editable_multiditta").editable({
+                                url: 'ajax_rd4/listini/_act.php',
+                                source: [
+                                  {value: 0, text: 'Monoditta', disabled: true},
+                                  {value: 1, text: 'Multiditta'}
+                               ],
+                                ajaxOptions: { dataType: 'json' },
+                                success: function(response, newValue) {
+                                    console.log(response);
+                                    if(response.result == 'KO'){
+                                        return response.msg;
+
+                                    }else{
+                                        ok(response.msg);
+
+                                    }
+                                }
+                            });
       $(".editable_tipologia").editable({
                                 url: 'ajax_rd4/listini/_act.php',
                                 source: [
@@ -711,20 +1003,22 @@ if($incompleto){
                                 }
                             });
     $("#export_listino_CSV").click(function(e) {
-        open("GET","http://retegas.altervista.org/gas4/ajax_rd4/listini/_act.php",{"act":"exp_csv","id":<?php echo $id_listino?>},"_BLANK");
+        open("GET","<?php echo APP_URL; ?>/ajax_rd4/listini/_act.php",{"act":"exp_csv","id":<?php echo $id_listino?>},"_BLANK");
     });
     $("#export_listino_XLS").click(function(e) {
-         open("GET","http://retegas.altervista.org/gas4/ajax_rd4/listini/_act.php",{"act":"exp_xls","t":"XLS","id":<?php echo $id_listino?>},"_BLANK");
+         open("GET","<?php echo APP_URL; ?>/ajax_rd4/listini/_act.php",{"act":"exp_xls","t":"XLS","id":<?php echo $id_listino?>},"_BLANK");
     });
     $("#export_listino_XLSX").click(function(e) {
-        open("GET","http://retegas.altervista.org/gas4/ajax_rd4/listini/_act.php",{"act":"exp_xls","t":"XLSX","id":<?php echo $id_listino?>},"_BLANK");
+        open("GET","<?php echo APP_URL; ?>/ajax_rd4/listini/_act.php",{"act":"exp_xls","t":"XLSX","id":<?php echo $id_listino?>},"_BLANK");
     });
     $("#export_listino_HTM").click(function(e) {
-        open("POST","http://retegas.altervista.org/gas4/ajax_rd4/listini/_act.php",{"act":"exp_htm","id":<?php echo $id_listino?>},"_BLANK");
+        open("POST","<?php echo APP_URL; ?>/ajax_rd4/listini/_act.php",{"act":"exp_htm","id":<?php echo $id_listino?>},"_BLANK");
     });
     $("#gestisci_articoli").click(function(e) {
-        //open("POST","http://retegas.altervista.org/gas4/ajax_rd4/listini/_act.php",{"act":"exp_htm","id":<?php echo $id_listino?>},"_BLANK");
-        location.replace('http://retegas.altervista.org/gas4/#ajax_rd4/listini/edit.php?id=<?php echo $id_listino?>');
+        location.replace('<?php echo APP_URL; ?>/#ajax_rd4/listini/edit.php?id=<?php echo $id_listino?>');
+    });
+    $("#visualizza_log").click(function(e) {
+        location.replace('<?php echo APP_URL; ?>/#ajax_rd4/listini/listino_log.php?id=<?php echo $id_listino?>');
     });
     $("#clona_listino").click(function(e) {
     $.SmartMessageBox({
@@ -748,7 +1042,7 @@ if($incompleto){
                                 ok(data.msg);
                                 console.log(data.id);
                                 setInterval(function(){
-                                        location.replace("http://retegas.altervista.org/gas4/#ajax_rd4/listini/listino.php?id="+data.id);
+                                        location.replace("<?php echo APP_URL; ?>/#ajax_rd4/listini/listino.php?id="+data.id);
                                         clearInterval();
                                 }, 3000);
 
@@ -803,7 +1097,7 @@ if($incompleto){
                         }).done(function(data) {
                             if(data.result=="OK"){
                                 ok(data.msg);
-                                location.replace("http://retegas.altervista.org/gas4/#ajax_rd4/listini/miei.php");
+                                location.replace("<?php echo APP_URL; ?>/#ajax_rd4/listini/miei.php");
                             }else{
                                 ko(data.msg)
                             ;}
@@ -811,6 +1105,40 @@ if($incompleto){
                         });
                 }
             });
+    });
+
+    $("#ordine_nuovo").click(function(e){
+    // ORDINE NORMALE
+        var nomeordine = $("#nomeordine").val();
+        var noteordine = $('#summernote').summernote('code');
+        $.SmartMessageBox({
+            title : "Stai per far partire un nuovo ordine!",
+            content : "Questo ordine è in coda e si aprirà in automatico tra 2 ore. Se vuoi fare delle modifiche o eliminarlo vai nella pagina I MIEI ORDINI",
+            buttons : '[OK][ANNULLA]'
+        }, function(ButtonPressed) {
+            if (ButtonPressed === "OK") {
+                $.ajax({
+                    type: "POST",
+                    url: "ajax_rd4/ordini/_act.php",
+                    dataType: 'json',
+                    data: {act: "nuovo_ordine", idlistino:<?php echo $id_listino;?>, nomeordine:nomeordine, quantigiorni:7, noteordine:noteordine},
+                    context: document.body
+                    }).done(function(data) {
+                        console.log(data.result + ' - ' + data.msg);
+                        if(data.result=="OK"){
+                            ok(data.msg);
+                            window.setTimeout(function(){
+                                window.location.href = "#ajax_rd4/ordini/edit.php?id="+data.id;
+                            }, 5000);
+                        }else{
+                            ko(data.msg);
+                        }
+                });
+
+            }
+        });
+        // ORDINE NORMALE
+
     });
 
     $('body').on('hidden.bs.modal', '.modal', function () {
@@ -876,7 +1204,7 @@ if($incompleto){
 
     });
 
-    $('.elimina_extra').click(function(){
+    $('.elimina_extra').click(function(e){
         $this = $(this);
         id_user = $this.data('id_user');
         $.ajax({
@@ -895,7 +1223,7 @@ if($incompleto){
                         });
     });
 
-    $('#aiuta_a_gestire').click(function(){
+    $('#aiuta_a_gestire').click(function(e){
     $.SmartMessageBox({
                 title : "Vuoi aiutare a gestire questo listino ?",
                 content : "Scrivi un breve messaggio che verrà inviato all\'autore di questo listino, e se lo vorrà ti inserirà tra i suoi gestori.",
@@ -915,7 +1243,6 @@ if($incompleto){
                         }).done(function(data) {
                             if(data.result=="OK"){
                                     ok(data.msg);
-                                    //location.replace("http://retegas.altervista.org/gas4/?#ajax_rd4/listini/listino.php?id="+data.id);
                             }else{
                                 ko(data.msg)
                             ;}
@@ -927,12 +1254,108 @@ if($incompleto){
             e.preventDefault();
         })
 
+        $('#summernote').summernote({
+            height : 180,
+            focus : false,
+            tabsize : 2,
+            toolbar: [
+                //[groupname, [button list]]
+                ['style', ['bold', 'italic', 'underline', 'clear']],
+                ['para', ['ul', 'ol', 'paragraph']],
+                ['insert', ['link', 'picture']]
+              ],
+
+            callbacks:{
+                onImageUpload: function(files, editor, $editable) {
+                    $('.sto_caricando').show();
+                    console.log("calling sendfile...");
+                    $.each(files, function (idx, file) {
+                            console.log("calling for "+file.name);
+                            sendFile(file,editor,$editable,file.name,'#summernote');
+                    });
+                },
+                onChange: function ($editable, sHtml) {
+                  //console.log($editable, sHtml);
+                  //$('#noteordine').val($editable);
+                }
+            }
+
+        });
+
+        //NOTE_LISTINO
+        $('#go_note_listino').click(function(e){
+            var value = $('#summernote').summernote('code');
+            //var value = $('#summernote').code();
+            $.ajax({
+              type: "POST",
+              url: "ajax_rd4/listini/_act.php",
+              dataType: 'json',
+              data: {act: "note_listino", pk: <?php echo $L->id_listini; ?>, value:value},
+              context: document.body
+            }).done(function(data) {
+                if(data.result=="OK"){
+                        ok(data.msg);}else{ko(data.msg);}
+                        //location.reload();
+            });
+        });
+        //NOTE
+
+        //RIMUOVI SEGNALAZIONE
+                $(document).off('click','.hide_segnalazione');
+                $(document).on('click','.hide_segnalazione', function(e){
+                    var segnalazione = $(this);
+                    id_segnalazione = $(this).data('id');
+                    console.log("hide segnalazione " + id_segnalazione);
+                    $.ajax({
+                          type: 'POST',
+                          url: 'ajax_rd4/segnalazioni/_act.php',
+                          dataType: 'json',
+                          data: {act: 'hide_segnalazione', id_segnalazione : id_segnalazione},
+                          context: document.body
+                        }).done(function(data) {
+                            if(data.result=='OK'){
+                                ok('Segnalazione tolta.');
+                            }else{
+                                ko(data.msg)
+                            ;}
+                        });
+                });
+        
+        //SEGNALAZIONE LISTINO
+        $('#do_segnalazione_listino').click(function(e){
+            e.preventDefault();
+            $('#modal_segnalazione_listino').modal('hide')
+            $.blockUI({ message: null });
+            var messaggio = $('#inputEmail3').val().replace(/\r\n|\r|\n/g,"<br />");
+            $.ajax({
+              type: "POST",
+              url: "ajax_rd4/segnalazioni/_act.php",
+              dataType: 'json',
+              data: {act: "do_segnalazione_listino", messaggio:messaggio, id_listino:<?php echo $id_listino; ?>},
+              context: document.body
+            }).done(function(data) {
+                $.unblockUI();
+                if(data.result=="OK"){
+                        $('#inputEmail3').val('');
+                        ok(data.msg);
+                }else{
+                    ko(data.msg);
+                }
+
+            });
+
+
+        })
+        //SEGNALAZIONE LISTINO
+        
     } // end pagefunction
 
-
+        function loadSummerNote(){
+            loadScript("js/plugin/summernote/new_summernote.min.js", pagefunction)
+        }
 
         loadScript("js/plugin/jqgrid/grid.locale-en.min.js",
-            loadScript("js/plugin/x-editable/x-editable.min.js", pagefunction));
+            loadScript("js/plugin/x-editable/x-editable.min.js", loadSummerNote ));
 
 
 

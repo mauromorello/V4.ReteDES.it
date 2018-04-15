@@ -7,46 +7,12 @@ $help_id ="mia_cassa";
 
 
 //-------SALDO
-$stmt = $db->prepare("SELECT  (
-                    COALESCE((SELECT SUM(importo) FROM retegas_cassa_utenti WHERE id_utente='"._USER_ID."' AND segno='+'),0)
-                    -
-                    COALESCE((SELECT SUM(importo) FROM retegas_cassa_utenti WHERE id_utente='"._USER_ID."' AND segno='-'),0)
-                    )  As risultato");
-$stmt->execute();
-$row = $stmt->fetch();
-$saldo =  (float)round($row["risultato"],2);
-
-$stmt = $db->prepare("SELECT  (
-            COALESCE((SELECT SUM(importo) FROM retegas_cassa_utenti WHERE id_utente='"._USER_ID."' AND segno='+' AND registrato='no'),0)
-            -
-            COALESCE((SELECT SUM(importo) FROM retegas_cassa_utenti WHERE id_utente='"._USER_ID."' AND segno='-' AND registrato='no'),0)
-            )  As risultato");
-$stmt->execute();
-$row = $stmt->fetch();
-$saldo_non_conf =  abs((float)round($row["risultato"],2));
-
-if(_GAS_CASSA_VISUALIZZAZIONE_SALDO){
-    $saldo +=  $saldo_non_conf;
-}
+$saldo = _NF(VA_CASSA_SALDO_UTENTE_TOTALE(_USER_ID));
+$saldo_non_conf = abs(_NF(VA_CASSA_SALDO_UTENTE_DA_REGISTRARE(_USER_ID)));
 
 
 $cassa='<h1>Hai <b><span class="txt-color-blue font-xl">'.$saldo.' €</span></b> disponibili</h1>
-        <h3>ma <span class="txt-color-red font-lg">'.$saldo_non_conf.' €</span> non ancora contabilizzati</h3';
-
-$options = array(   "editbutton" => false,
-                    "fullscreenbutton"=>false,
-                    "deletebutton"=>false,
-                    "colorbutton"=>true);
-$wg_cassa = $ui->create_widget($options);
-$wg_cassa->id = "wg_cassa_mia_cassa";
-$wg_cassa->body = array("content" => $cassa,"class" => "");
-$wg_cassa->header = array(
-    "title" => '<h2>Saldo</h2>',
-    "icon" => 'fa fa-euro'
-);
-
-
-
+        <h3>e <span class="txt-color-red font-lg">'.$saldo_non_conf.' €</span> non ancora contabilizzati</h3';
 
 $stmt = $db->prepare("SELECT * FROM retegas_options WHERE chiave='PREN_MOV_CASSA' AND id_user='"._USER_ID."'");
 $stmt->execute();
@@ -65,7 +31,7 @@ if($m<>""){
 
 $preno= '<div id="lista_prenotazioni">'.$m.'</div>
             <div class="panel-group smart-accordion-default margin-top-10" id="accordion-2">
-                            <div class="panel panel-default">
+                            <div class="panel panel-default" id="anticipa-form-parent">
                                 <div class="panel-heading">
                                     <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion-2" href="#collapseOne-1" class=""> <i class="fa fa-fw fa-minus-circle txt-color-red"></i> <i class="fa fa-fw fa-plus-circle txt-color-green"></i> Clicca qua per inserire una nuova prenotazione</a></h4>
                                 </div>
@@ -98,7 +64,7 @@ $preno= '<div id="lista_prenotazioni">'.$m.'</div>
                                                                 </label>
                                                 </section>
                                                 <input  type="hidden" name="act" value="ricarica">
-                                                <input class="btn btn-lg btn-primary pull-right" type="submit" value="Invia la richiesta">
+                                                <input id="invia_richiesta_ricarica" class="btn btn-lg btn-primary pull-right" type="submit" value="Invia la richiesta">
                                             </fieldset>
                                         </form>
                                     </div>
@@ -113,17 +79,7 @@ $preno= '<div id="lista_prenotazioni">'.$m.'</div>
 
            ';
 
-$options = array(   "editbutton" => false,
-                    "fullscreenbutton"=>false,
-                    "deletebutton"=>false,
-                    "colorbutton"=>true);
-$wg_preno = $ui->create_widget($options);
-$wg_preno->id = "wg_cassa_prenotazioni_attive";
-$wg_preno->body = array("content" => $preno,"class" => "");
-$wg_preno->header = array(
-    "title" => '<h2>Prenotazione carichi</h2>',
-    "icon" => 'fa fa-pencil-square-o'
-);
+
 
 
 
@@ -146,7 +102,7 @@ $h ='<table id="dt_miacassa" class="table table-striped" width="100%">
         <th data-hide="phone">Ordine</th>
         <th data-hide="phone">Cassiere</th>
         <th data-hide="phone">REG</th>
-        <th data-hide="phone">CON</th>
+        <!--<th data-hide="phone">CON</th>-->
         </tr>
         </thead>';
 
@@ -176,12 +132,12 @@ foreach ($rows as $row) {
              $REG = "";
 
          }
-         if($row["contabilizzato"]=="si"){
-             $CON = conv_datetime_from_db($row["data_contabilizzato"]);
-
-         }else{
-             $CON = "";
-         }
+         //if($row["contabilizzato"]=="si"){
+        //     $CON = conv_datetime_from_db($row["data_contabilizzato"]);
+         //
+         //}else{
+         //    $CON = "";
+         //}
 
          $h.= "
             <tr>
@@ -195,7 +151,7 @@ foreach ($rows as $row) {
             <td>$ordine_op</td>
             <td>".$row["fullname"]."</td>
             <td>$REG</td>
-            <td>$CON</td>
+
             </tr>";
 
 }
@@ -221,21 +177,38 @@ $wg_mov->header = array(
 
 <section id="widget-grid" class="margin-top-10">
 
-    <div class="row">
-        <!-- PRIMA COLONNA-->
-        <article class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
-            <?php echo help_render_html($help_id); ?>
-            <?php echo $wg_cassa->print_html(); ?>
-        </article>
-        <article class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
-            <?php echo $wg_preno->print_html(); ?>
-        </article>
+    
 
+    <div class="row margin-top-10">
+        <article class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+            <div class="well well-sm">
+            <?php echo $preno; ?>
+            </div>
+        </article>
+        <article class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+            <div class="well well-sm text-align-right">
+            <?php echo $cassa; ?>
+            </div>
+        </article>
     </div>
-    <hr>
-    <div class="row">
+
+    <div class="row margin-top-10">
      <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-            <?php echo $wg_mov->print_html(); ?>
+            Clicca <a class="btn btn-danger" href="\#ajax_rd4\user\mia_cassa.php">qua</a> per una versione più completa di questo report.
+     
+     </article>
+    </div>
+    
+    <div class="row margin-top-10">
+     <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+            <?php echo $h ?>
+        </article>
+    </div>
+      <hr>
+        <div class="row">
+        <!-- PRIMA COLONNA-->
+        <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+            <?php echo help_render_html($help_id); ?>
         </article>
     </div>
 </section>
@@ -316,16 +289,20 @@ $wg_mov->header = array(
 
             // Ajax form submition
             submitHandler : function(form) {
+                $('#invia_richiesta_ricarica').prop('disable', true).addClass('disabled');
+                $('#invia_richiesta_ricarica').val('Attendi...');
 
                 $(form).ajaxSubmit({
                     type:"POST",
                     dataType: 'json',
                     success : function(data) {
-                                //$("#checkout-form").addClass('submited');
+                                $("#anticipa-form-parent").hide();
+
                                 if(data.result=="OK"){
-                                    ok(data.msg);
+                                    okWait(data.msg);
 
                                     $("#lista_prenotazioni").append(data.html);
+
                                 }else{
                                     ko(data.msg);
                                 }
@@ -350,6 +327,9 @@ $wg_mov->header = array(
             tablet : 1024,
             phone : 480
         };
+
+        $.fn.dataTable.moment( 'DD/MM/YYYY HH:mm' );
+
         var table= $('#dt_miacassa').dataTable({
 
             "sDom": "<'dt-toolbar'<'col-xs-12 col-sm-6'f><'col-sm-6 col-xs-6 hidden-xs'T C>r>"+
@@ -365,16 +345,20 @@ $wg_mov->header = array(
                     {
                         "sExtends": "pdf",
                         "sTitle": "SmartAdmin_PDF",
-                        "sPdfMessage": "SmartAdmin PDF Export",
+                        "sPdfMessage": "reteDES.it PDF Export",
                         "sPdfSize": "letter"
                     },
                      {
                         "sExtends": "print",
-                        "sMessage": "Generated by SmartAdmin <i>(press Esc to close)</i>"
+                        "sMessage": "Generato con reteDES.it <i>(premiESC per uscire)</i>"
                     }
                  ],
                 "sSwfPath": "js/plugin/datatables/swf/copy_csv_xls_pdf.swf"
             },
+            "columnDefs": [
+                //{ "type": "date", "targets": 1 },
+                //{ "type": "date", "targets": 8 }
+            ],
             "autoWidth" : true,
             "preDrawCallback" : function() {
                 // Initialize the responsive datatables helper once.
@@ -418,8 +402,11 @@ $wg_mov->header = array(
         loadScript("js/plugin/datatables/dataTables.colVis.min.js", function(){
             loadScript("js/plugin/datatables/dataTables.tableTools.min.js", function(){
                 loadScript("js/plugin/datatables/dataTables.bootstrap.min.js", function(){
-                    loadScript("js/plugin/datatable-responsive/datatables.responsive.min.js", pagefunction)
-
+                    loadScript("//cdnjs.cloudflare.com/ajax/libs/moment.js/2.8.4/moment.min.js", function(){
+                        loadScript("//cdn.datatables.net/plug-ins/1.10.12/sorting/datetime-moment.js", function(){
+                            loadScript("js/plugin/datatable-responsive/datatables.responsive.min.js", pagefunction)
+                        });
+                    });
                 });
             });
         });

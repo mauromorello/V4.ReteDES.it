@@ -9,7 +9,7 @@ $options = array(   "editbutton" => false,
                     "fullscreenbutton"=>true,
                     "deletebutton"=>false,
                     "colorbutton"=>true);
-$stmt = $db->prepare("SELECT * FROM retegas_ditte");
+$stmt = $db->prepare("SELECT * FROM retegas_ditte where id_ditte>0");
 $stmt->execute();
 $rows = $stmt->fetchAll();
 
@@ -57,7 +57,7 @@ foreach($rows as $row){
 
 
             $d.='<tr class="'.$class_tr.'">
-                    <td><a href="#ajax_rd4/fornitori/scheda.php?id='.$row["id_ditte"].'">'.$row["descrizione_ditte"].'</a><br><span class="font-xs">'.$row["fullname"].'</span></td>
+                    <td>'.$row["id_ditte"].' - <a href="#ajax_rd4/fornitori/scheda.php?id='.$row["id_ditte"].'">'.$row["descrizione_ditte"].'</a><br><span class="font-xs">'.$row["fullname"].'</span></td>
                     <td><a href="tel:'.$row["telefono"].'" class="visible-xs">'.$row["telefono"].'</a><span class="hidden-xs">'.$row["telefono"].'</span></td>
                     <td>'.$row["mail_ditte"].'</td>
                     <td>'.$geo.'&nbsp;&nbsp;'.$row["indirizzo"].'</td>
@@ -68,17 +68,6 @@ foreach($rows as $row){
 
 $d.= '</tbody></table></div>';
 
-$wg_ditte= $ui->create_widget($options);
-$wg_ditte->id = "wg_tutte_le_ditte";
-$wg_ditte->body = array("content" => $d ,"class" => "no-padding");
-$wg_ditte->header = array(
-    "title" => '<h2>Tutte le ditte</h2>',
-    "icon" => 'fa fa-bar-truck'
-);
-
-if(_USER_PERMISSIONS & perm::puo_creare_ditte){
-    $button[] = '<form style="margin-right:10px;"><button  class="aggiungi_ditta btn btn-default btn-success navbar-btn"><i class="fa fa-plus"></i> Nuova ditta</button></form>';
-}
 
 ?>
 <?php echo navbar('<i class="fa fa-2x fa-truck pull-left"></i> Tutte le  ditte<br>',$button); ?>
@@ -87,9 +76,11 @@ if(_USER_PERMISSIONS & perm::puo_creare_ditte){
 
     <div class="row">
         <!-- PRIMA COLONNA-->
+        <div class="well well-sm">
+            <?php echo $d ?>
+        </div>
         <article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
             <?php echo help_render_html("tutte_le_ditte",$page_title); ?>
-            <?php echo $wg_ditte->print_html(); ?>
         </article>
 
     </div>
@@ -100,13 +91,6 @@ if(_USER_PERMISSIONS & perm::puo_creare_ditte){
 <script type="text/javascript">
 
     pageSetUp();
-
-
-
-
-
-
-
 
     var pagefunction = function() {
         //-------------------------HELP

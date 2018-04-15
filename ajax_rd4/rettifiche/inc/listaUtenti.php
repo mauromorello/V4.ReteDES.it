@@ -16,6 +16,8 @@ $sql = "SELECT  maaking_users.userid as id,
                 AND
                 maaking_users.isactive = 1
                 AND
+                retegas_referenze.id_utente_referenze>0
+                AND
                 CONCAT(maaking_users.fullname,' ', retegas_gas.descrizione_gas) LIKE :q";
 $stmt = $db->prepare($sql);
 //$q = "%iri%";

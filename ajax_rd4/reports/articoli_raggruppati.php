@@ -19,7 +19,8 @@ $orientation = "portrait"; // portrait / landscape
 
 
 //-----------------------------------CONTENT
-$html='<table id="table_exp" class="rd4" style="margin-left: auto; margin-right: auto">
+$html='<h3>Ordine #'.$O->id_ordini.' - '.$O->descrizione_ordini.'</h3>';
+$html.='<table id="table_exp" class="rd4" style="margin-left: auto; margin-right: auto">
             <thead >
                 <tr class="intestazione" >
                     <th style="width:20%;">Codice</th>
@@ -83,9 +84,9 @@ foreach($rows AS $row){
     $html.='<tr class="'.$row_class.'">';
     $html.='<td>'.$row["art_codice"].'</td>';
     $html.='<td>'.$row["art_desc"].' <span class="note">('.$row["art_um"].')</span></td>';
-    $html.='<td style="text-align:right"><strong>'.number_format($row["totale_articolo"],2, ',', '').'</strong></td>';
-    $html.='<td style="text-align:right">'.number_format($scatole,2, ',', '').'</td>';
-    $html.='<td style="text-align:right">'.number_format($avanzo,2, ',', '').'</td>';
+    $html.='<td style="text-align:right"><strong>'._NF($row["totale_articolo"]).'</strong></td>';
+    $html.='<td style="text-align:right">'.$scatole.'</td>';
+    $html.='<td style="text-align:right">'._NF($avanzo).'</td>';
     $html.='</tr>';
 
     $totale += round($row["totale_articolo"]);
@@ -171,7 +172,7 @@ Nessuna opzione per questo report.
         $('.show_pdf').click(function(){
             var $this = $(this);
             var id = $this.data('id_ordine');
-            open('POST', 'http://retegas.altervista.org/gas4/ajax_rd4/reports/articoli_raggruppati.php', {id:id, o:'pdf', dummy:<?php echo rand(1000,9999); ?> }, '_blank');
+            open('POST', '<?php echo APP_URL; ?>/ajax_rd4/reports/articoli_raggruppati.php', {id:id, o:'pdf', dummy:<?php echo rand(1000,9999); ?> }, '_blank');
             return false;
         });
 
