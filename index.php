@@ -1,4 +1,6 @@
-<?php
+<?php //VECCHIO INDEX
+
+
 
 //initilize the page
 require_once("inc/init.php");
@@ -16,10 +18,14 @@ if(_USER_INSIDECONTAINER){$page_body_prop["class"]="container";}
 
 /* ---------------- END PHP Custom Scripts ------------- */
 
+
 //include header
 //you can add your custom css in $page_css array.
 //Note: all css files are inside css/ folder
 $page_css[] = "your_style.css";
+
+if(_USER_ADDTOCALENDAR){$page_css[] = "atc-base.css";}
+
 //$page_css[] = "ui.jqgrid.css";
 include("inc/header.php");
 
@@ -28,32 +34,32 @@ include("inc/header.php");
 include("inc/nav.php");
 
 ?>
+
 <!-- ==========================CONTENT STARTS HERE ========================== -->
 <!-- MAIN PANEL -->
 <div id="main" role="main">
-	<?php
-		include("inc/ribbon.php");
-	?>
-	<!-- MAIN CONTENT -->
-	<div id="content">
-
-	</div>
-	<!-- END MAIN CONTENT -->
+    <?php
+        include("inc/ribbon.php");
+    ?>
+    <!-- MAIN CONTENT -->
+    <div id="content">
+    </div>
+    <!-- END MAIN CONTENT -->
 
 </div>
 <!-- END MAIN PANEL -->
 
 <!-- FOOTER -->
-	<?php
-		include("inc/footer.php");
-	?>
+    <?php
+        include("inc/footer.php");
+    ?>
 <!-- END FOOTER -->
 
 <!-- ==========================CONTENT ENDS HERE ========================== -->
 
 <?php
-	//include required scripts
-	include("inc/scripts.php");
-	//include footer
-	include("inc/google-analytics.php");
+    //include required scripts
+    include("inc/scripts.php");
+    //include footer
+    include("inc/google-analytics.php");
 ?>
